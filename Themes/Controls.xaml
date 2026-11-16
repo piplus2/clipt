@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:ui="clr-namespace:Clipt.UI">
 
     <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
@@ -282,48 +283,148 @@
         </Setter>
     </Style>
 
-    <!-- Slim, auto-hiding-looking scrollbars. -->
-    <Style x:Key="SlimThumb" TargetType="Thumb">
+    <!-- Windows 11-style scrollbars: a slim pill that widens on hover, with a generous hit area,
+         a minimum thumb size (always grabbable, even with thousands of clips) and click-to-page tracks. -->
+    <ui:MinThumbViewport x:Key="MinThumbViewport" />
+
+    <Style x:Key="SlimThumbV" TargetType="Thumb">
+        <Setter Property="MinHeight" Value="36" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
-                    <Border CornerRadius="2" Background="{DynamicResource Fg.Tertiary}" Opacity="0.6" />
+                    <Border Background="Transparent">
+                        <Border x:Name="Pill" CornerRadius="3" Background="{DynamicResource Fg.Tertiary}" HorizontalAlignment="Center"
+                                Width="{Binding Tag, RelativeSource={RelativeSource AncestorType=ScrollBar}}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Pill" Property="Background" Value="{DynamicResource Fg.Secondary}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SlimThumbH" TargetType="Thumb">
+        <Setter Property="MinWidth" Value="36" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border Background="Transparent">
+                        <Border x:Name="Pill" CornerRadius="3" Background="{DynamicResource Fg.Tertiary}" VerticalAlignment="Center"
+                                Height="{Binding Tag, RelativeSource={RelativeSource AncestorType=ScrollBar}}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Pill" Property="Background" Value="{DynamicResource Fg.Secondary}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PageArea" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Delay" Value="250" />
+        <Setter Property="Interval" Value="60" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Background="Transparent" />
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
 
     <Style TargetType="ScrollBar">
-        <Setter Property="Width" Value="4" />
-        <Setter Property="MinWidth" Value="4" />
-        <Setter Property="Margin" Value="0,4,2,4" />
+        <!-- Tag carries the pill thickness so the thumb can grow on hover. -->
+        <Setter Property="Tag" Value="4" />
+        <Setter Property="Width" Value="12" />
+        <Setter Property="MinWidth" Value="12" />
+        <Setter Property="Margin" Value="0,4,1,4" />
+        <Setter Property="Background" Value="Transparent" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ScrollBar">
-                    <Track x:Name="PART_Track" IsDirectionReversed="True">
-                        <Track.Thumb>
-                            <Thumb Style="{StaticResource SlimThumb}" />
-                        </Track.Thumb>
-                    </Track>
+                    <Border Background="Transparent">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.ViewportSize>
+                                <MultiBinding Converter="{StaticResource MinThumbViewport}" ConverterParameter="36">
+                                    <Binding Path="ViewportSize" RelativeSource="{RelativeSource TemplatedParent}" />
+                                    <Binding Path="Minimum" RelativeSource="{RelativeSource TemplatedParent}" />
+                                    <Binding Path="Maximum" RelativeSource="{RelativeSource TemplatedParent}" />
+                                    <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}" />
+                                </MultiBinding>
+                            </Track.ViewportSize>
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Style="{StaticResource PageArea}" Command="ScrollBar.PageUpCommand" />
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Style="{StaticResource PageArea}" Command="ScrollBar.PageDownCommand" />
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Style="{StaticResource SlimThumbV}" />
+                            </Track.Thumb>
+                        </Track>
+                    </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
         <Style.Triggers>
+            <Trigger Property="Orientation" Value="Vertical">
+                <Setter Property="Tag" Value="4" />
+            </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="Orientation" Value="Vertical" />
+                    <Condition Property="IsMouseOver" Value="True" />
+                </MultiTrigger.Conditions>
+                <Setter Property="Tag" Value="8" />
+            </MultiTrigger>
             <Trigger Property="Orientation" Value="Horizontal">
                 <Setter Property="Width" Value="Auto" />
-                <Setter Property="Height" Value="4" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="Height" Value="12" />
+                <Setter Property="Margin" Value="4,0,4,1" />
+                <Setter Property="Tag" Value="4" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ScrollBar">
-                            <Track x:Name="PART_Track">
-                                <Track.Thumb>
-                                    <Thumb Style="{StaticResource SlimThumb}" />
-                                </Track.Thumb>
-                            </Track>
+                            <Border Background="Transparent">
+                                <Track x:Name="PART_Track">
+                                    <Track.ViewportSize>
+                                        <MultiBinding Converter="{StaticResource MinThumbViewport}" ConverterParameter="36">
+                                            <Binding Path="ViewportSize" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            <Binding Path="Minimum" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            <Binding Path="Maximum" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}" />
+                                        </MultiBinding>
+                                    </Track.ViewportSize>
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Style="{StaticResource PageArea}" Command="ScrollBar.PageLeftCommand" />
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Style="{StaticResource PageArea}" Command="ScrollBar.PageRightCommand" />
+                                    </Track.IncreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Style="{StaticResource SlimThumbH}" />
+                                    </Track.Thumb>
+                                </Track>
+                            </Border>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
             </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="Orientation" Value="Horizontal" />
+                    <Condition Property="IsMouseOver" Value="True" />
+                </MultiTrigger.Conditions>
+                <Setter Property="Tag" Value="8" />
+            </MultiTrigger>
         </Style.Triggers>
     </Style>
 

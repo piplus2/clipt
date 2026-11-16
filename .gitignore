@@ -3,3 +3,4 @@ obj/
 *.user
 .vs/
 *_wpftmp.csproj
+publish/

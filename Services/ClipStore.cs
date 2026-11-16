@@ -11,7 +11,7 @@ public sealed class SearchRequest
     public string Query { get; init; } = "";
     public ClipKind[]? Kinds { get; init; }
     public bool PinnedOnly { get; init; }
-    public int Limit { get; init; } = 400;
+    public int Limit { get; init; } = int.MaxValue; // the list is virtualized; show the whole history
 }
 
 /// <summary>
@@ -297,7 +297,7 @@ public sealed class ClipStore
             if (apps.Count > 0) q = q.Where(i => apps.All(a => Normalize(i.SourceApp ?? "").Contains(a, StringComparison.Ordinal)));
             if (terms.Count > 0)
                 q = q.Where(i => _searchText.TryGetValue(i.Id, out var hay) && terms.All(t => hay.Contains(t, StringComparison.Ordinal)));
-            return q.OrderByDescending(i => i.LastUsedAt).Take(req.Limit).ToList();
+            return q.OrderByDescending(i => i.LastUsedAt).ThenByDescending(i => i.Id).Take(req.Limit).ToList();
         }
     }
 

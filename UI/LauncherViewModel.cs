@@ -36,7 +36,8 @@ public sealed class LauncherViewModel : ObservableObject
     private string _browseQuery = "";
     private FilterOption _filter;
 
-    public ObservableCollection<ClipItem> Items { get; } = [];
+    private ObservableCollection<ClipItem> _items = [];
+    public ObservableCollection<ClipItem> Items { get => _items; private set => Set(ref _items, value); }
     public ObservableCollection<AiAction> Actions { get; } = [];
     public ObservableCollection<Hint> Hints { get; } = [];
     public IReadOnlyList<FilterOption> Filters { get; }
@@ -181,8 +182,8 @@ public sealed class LauncherViewModel : ObservableObject
             PinnedOnly = _filter.PinnedOnly,
         });
 
-        Items.Clear();
-        foreach (var r in results) Items.Add(r);
+        // Swap the whole collection: one reset instead of thousands of Add notifications per keystroke.
+        Items = new ObservableCollection<ClipItem>(results);
         Selected = (keepId is not null ? Items.FirstOrDefault(i => i.Id == keepId) : null) ?? Items.FirstOrDefault();
 
         int total = _app.Store.Count();

@@ -35,6 +35,17 @@ public partial class LauncherWindow : Window
         Deactivated += (_, _) => { if (IsVisible) HideLauncher(); };
         PreviewKeyDown += OnPreviewKeyDown;
         PreviewTextInput += OnPreviewTextInput;
+
+        foreach (var list in new[] { ClipList, ActionList })
+        {
+            list.PreviewMouseLeftButtonDown += SelectRowUnderMouse;
+            list.PreviewMouseRightButtonDown += SelectRowUnderMouse;
+            var l = list;
+            l.Loaded += (_, _) =>
+            {
+                if (l.Template.FindName("Scroller", l) is ScrollViewer sv) SmoothScroll.Enable(sv, () => RowHeight(l));
+            };
+        }
     }
 
     private bool _captureProtection = true;
@@ -287,6 +298,36 @@ public partial class LauncherWindow : Window
     }
 
     // ---------- mouse / menu ----------
+
+    /// <summary>
+    /// Rows are deliberately not focusable (typing must always reach the search box), and WPF only selects a
+    /// ListBoxItem on click if it can focus it, so mouse selection is done here. Not marked handled, so
+    /// double-click and the context menu still work, now on the row that was actually clicked.
+    /// </summary>
+    private void SelectRowUnderMouse(object sender, MouseButtonEventArgs e)
+    {
+        var list = (ListBox)sender;
+        var hit = e.OriginalSource as DependencyObject;
+        while (hit is not null and not ListBoxItem)
+            hit = hit is System.Windows.Media.Visual or System.Windows.Media.Media3D.Visual3D
+                ? System.Windows.Media.VisualTreeHelper.GetParent(hit)
+                : LogicalTreeHelper.GetParent(hit);
+        if (hit is ListBoxItem row && list.ItemContainerGenerator.ItemFromContainer(row) is { } item &&
+            item != DependencyProperty.UnsetValue)
+        {
+            list.SelectedItem = item;
+        }
+    }
+
+    private static double RowHeight(ListBox list)
+    {
+        for (int i = 0; i < list.Items.Count; i++)
+        {
+            if (list.ItemContainerGenerator.ContainerFromIndex(i) is FrameworkElement row && row.ActualHeight > 0)
+                return row.ActualHeight + row.Margin.Top + row.Margin.Bottom;
+        }
+        return 50;
+    }
 
     private void List_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {

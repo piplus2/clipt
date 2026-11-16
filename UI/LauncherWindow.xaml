@@ -33,7 +33,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBox">
-                        <ScrollViewer Style="{StaticResource SlimScrollViewer}" Focusable="False" Padding="0,6">
+                        <ScrollViewer x:Name="Scroller" Style="{StaticResource SlimScrollViewer}" Focusable="False" Padding="0,6">
                             <ItemsPresenter />
                         </ScrollViewer>
                     </ControlTemplate>
