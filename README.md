@@ -2,6 +2,8 @@
 
 **A Spotlight-style clipboard history for Windows.** Press a shortcut, type a few letters, hit Enter, and it's pasted.
 
+![Clipt: search your clipboard history and preview each clip](docs/images/launcher.png)
+
 - **Everything you copy:** text, rich text, links, code, colours, images and files, with a live preview.
 - **Instant search:** search ignores case and accents, matches are highlighted, and filters let you narrow by type
   or by app (`app:chrome`). **Text inside screenshots is searchable** too, thanks to the OCR built into Windows.
@@ -11,6 +13,10 @@
 - **Secure by design:** your history is encrypted, and passwords and keys are recognised and hidden automatically. [Details below](#security--privacy).
 - **Optional AI:** press Tab on a clip to summarize, rewrite, translate, explain or ask anything, with Claude or a
   local model via Ollama. Off until you turn it on.
+
+| Search text inside screenshots | Secrets are hidden automatically | Colour previews |
+|---|---|---|
+| ![Searching "revenue" finds a chart screenshot by its text](docs/images/search-ocr.png) | ![A GitHub token masked and set to auto-delete](docs/images/secret.png) | ![Colour preview with HEX, RGB and HSL values](docs/images/color.png) |
 
 ## Install
 

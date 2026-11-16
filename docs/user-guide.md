@@ -30,27 +30,19 @@ By default Clipt starts with Windows. Turn this off in **Settings → General �
 
 ## The launcher
 
-```
-┌───────────────────────────────────────────────────────────────┐
-│ 🔍  Search your clipboard                                  ⚙  │
-│  All  Text  Images  Links  Files  Colors  Pinned              │
-├──────────────────────────┬────────────────────────────────────┤
-│ ▌ Meeting notes: ship…   │                                    │
-│   Word · 2 min ago       │   Preview of the selected clip     │
-│   #7C5CFF                │   (full text, image, colour,       │
-│   https://github.com/…   │    file list, or a link card)      │
-│   ••••••••••••           │                                    │
-│   Looks like a password  │   Word · 342 characters · 14:05    │
-├──────────────────────────┴────────────────────────────────────┤
-│ ↵ Paste  ⇧↵ Plain text  Ctrl↵ Copy  Ctrl P Pin  …    1,204 clips│
-└───────────────────────────────────────────────────────────────┘
-```
+![The Clipt launcher: search box and filters on top, your history on the left, a preview of the selected clip on the right, and the available shortcuts in the footer](images/launcher.png)
 
 - It opens centred on the monitor you're working on and closes as soon as it loses focus.
 - Typing always goes to the search box, even after you click a row.
 - The footer shows the shortcuts available right now.
 - Clips are recognised by type: **text**, **code** (shown in a monospace font), **links**, **colours** (with a
   swatch and HEX/RGB/HSL values), **images** (with any text found in them) and **files**.
+
+| A colour | A link |
+|---|---|
+| ![Colour preview with a large swatch and its HEX, RGB and HSL values](images/color.png) | ![Link preview in the light theme, with the site name and an Open in browser shortcut](images/launcher-light.png) |
+
+Clipt follows your Windows light/dark mode and accent colour, or you can pick a theme in **Settings → General → Appearance**.
 
 ## Searching
 
@@ -62,6 +54,9 @@ By default Clipt starts with Windows. Turn this off in **Settings → General �
 | `app:word budget` | "budget" copied from Word |
 
 - **Text inside images is searchable.** Clipt reads screenshots and pictures with the OCR built into Windows, on your PC.
+  Here, searching for `revenue` finds a screenshot of a chart, and the preview shows the text that was found in it:
+
+  ![Searching for "revenue" finds a chart screenshot; the preview lists the recognised text under "Text in image"](images/search-ocr.png)
 - **Filters:** click a chip or press **Ctrl+1 … Ctrl+7** (All, Text, Images, Links, Files, Colors, Pinned).
   **Ctrl+Tab** / **Ctrl+Shift+Tab** cycle through them.
 - **Secrets aren't searchable by their content** (see below). You can still find them by their label, e.g. `password`.
@@ -113,6 +108,8 @@ Clipt recognises these when you copy them:
   and it's **wiped from the clipboard after 30 seconds**, unless you've copied something else since.
 - It's deleted automatically **10 minutes** after its last use. **Ctrl+P** keeps it.
 
+![A detected GitHub token shown masked, labelled "API key or token", with a note that it auto-deletes in 7 minutes](images/secret.png)
+
 Choose **Never save** in **Settings → Privacy & security** to have secrets ignored completely.
 
 **Ctrl+H** marks any clip as sensitive by hand, or removes the mark if detection got it wrong.
@@ -162,6 +159,8 @@ A clip is sent only when you run an action on it, and **secrets are never sent**
 ## Settings reference
 
 Open with **Ctrl+,** in the launcher, the ⚙ button, the tray menu, or `Clipt.exe --settings`.
+
+<img src="images/settings.png" width="450" alt="The Settings window, General section: shortcut, Win+V takeover, paste directly, start with Windows and appearance">
 
 | Setting | Default | Notes |
 |---|---|---|

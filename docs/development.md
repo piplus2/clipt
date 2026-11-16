@@ -86,6 +86,21 @@ text and/or images. The system prompt already asks for paste-ready output.
 3. Apply it in `App.ApplySettings()` if it affects running services.
 4. Document it in [user-guide.md](user-guide.md#settings-reference).
 
+### Update the screenshots
+
+The screenshots in `docs/images/` come from an isolated instance filled with made-up clips, never from a real history.
+
+1. Start an isolated instance (see [above](#run-an-isolated-instance)) with this `settings.json` in `CLIPT_DATA_DIR`:
+   ```json
+   { "FirstRunDone": true, "HideFromScreenCapture": false, "Theme": "Dark" }
+   ```
+   `HideFromScreenCapture` must be off, or the launcher is invisible to screenshot tools.
+2. Copy some demo clips. Secrets auto-delete after 10 minutes, so copy those last.
+3. Put a plain window behind the launcher so the desktop wallpaper doesn't tint the acrylic.
+4. Capture the window at 100% display scaling and save it as PNG under the existing name. The launcher closes when
+   it loses focus, so use a capture that doesn't take focus, e.g. a delayed capture or `Graphics.CopyFromScreen`
+   of the window's bounds from a script.
+
 ## Release checklist
 
 - [ ] `dotnet test tests/Clipt.Tests` passes
