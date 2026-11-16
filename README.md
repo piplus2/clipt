@@ -84,3 +84,7 @@ $env:CLIPT_DATA_DIR = "$env:TEMP\clipt-dev"; dotnet run   # isolated history; no
 ```
 
 See the [development guide](docs/development.md).
+
+## License
+
+[MIT](LICENSE) © 2026 Paolo Inglese

@@ -16,6 +16,9 @@
     <Version>0.1.0</Version>
     <Product>Clipt</Product>
     <Description>A Spotlight-style clipboard history for Windows.</Description>
+    <Copyright>Copyright (c) 2026 Paolo Inglese</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/piplus2/clipt</RepositoryUrl>
     <InvariantGlobalization>false</InvariantGlobalization>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- WFO0003 targets WinForms-first apps; this is a WPF app that declares PerMonitorV2 in its manifest. -->
