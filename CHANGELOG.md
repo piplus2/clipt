@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 — 2026-11-16
 
 ### Changed
 - Much lower memory use while Clipt sits in the tray: memory used by the launcher is released a few seconds after it closes.

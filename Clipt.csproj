@@ -13,7 +13,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>Clipt</AssemblyName>
     <RootNamespace>Clipt</RootNamespace>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Product>Clipt</Product>
     <Description>A Spotlight-style clipboard history for Windows.</Description>
     <Copyright>Copyright (c) 2026 Paolo Inglese</Copyright>
