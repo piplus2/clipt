@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 — 2026-11-16
+
+First release.
 
 ### Added
 - Spotlight-style launcher with Windows 11 acrylic backdrop, accent colour and light/dark themes.

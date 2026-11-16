@@ -17,7 +17,8 @@
 
 ## Getting started
 
-1. Run `Clipt.exe` (see the [README](../README.md#install) for building or downloading it).
+1. Download `Clipt-<version>-win-x64.exe` from the [latest release](https://github.com/piplus2/clipt/releases/latest)
+   and run it (see the [README](../README.md#install) for details, or to build from source).
 2. A tray icon appears and the launcher opens. From now on, everything you copy is recorded.
 3. Press **Alt+Shift+V** anywhere to open Clipt, type to search, and press **Enter** to paste.
 
@@ -266,4 +267,4 @@ setting, which is on by default.
 1. Quit Clipt from the tray icon.
 2. Turn off *Start with Windows* first, or delete the `Clipt` value under
    `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run`.
-3. Delete `Clipt.exe` and the `%LOCALAPPDATA%\Clipt` folder.
+3. Delete the Clipt `.exe` and the `%LOCALAPPDATA%\Clipt` folder.

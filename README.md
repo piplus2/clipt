@@ -14,10 +14,21 @@
 
 ## Install
 
-Clipt needs Windows 10 2004+ (Windows 11 22H2+ for the full look) and the
-[.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
+**[⬇ Download the latest release](https://github.com/piplus2/clipt/releases/latest)**
 
-Build it from source:
+1. Download **`Clipt-<version>-win-x64.exe`**. It's a single file with nothing else to install.
+   If you already have the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0),
+   the smaller `-framework-dependent` file works too.
+2. Put it wherever you like (e.g. `%LOCALAPPDATA%\Programs\Clipt\`) and run it.
+3. Press **Alt+Shift+V** anywhere.
+
+Clipt runs on Windows 10 2004+; Windows 11 22H2+ gives the full look.
+
+> **"Windows protected your PC"?** The exe isn't code-signed yet, so SmartScreen warns about new downloads.
+> Click **More info → Run anyway**. You can check the file against `SHA256SUMS.txt` from the release
+> with `Get-FileHash .\Clipt-*.exe`.
+
+**Build from source** (requires the .NET 10 SDK):
 
 ```powershell
 git clone https://github.com/piplus2/clipt.git
@@ -25,8 +36,6 @@ cd clipt
 dotnet publish Clipt.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
 .\publish\Clipt.exe
 ```
-
-Then press **Alt+Shift+V** anywhere.
 
 ## Everyday use
 
