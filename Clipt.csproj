@@ -21,6 +21,11 @@
     <RepositoryUrl>https://github.com/piplus2/clipt</RepositoryUrl>
     <InvariantGlobalization>false</InvariantGlobalization>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Compile each method once, fully optimised. With tiered compilation the JIT keeps recompiling hot UI code
+         (with dynamic PGO, twice) the first times the launcher is used: measured on a 2,000-clip history, opening
+         the launcher cost ~1,000 ms CPU instead of ~250 ms and the first scroll 61% of a core instead of 17%.
+         The price is ~190 ms more CPU once at startup; the launcher opens just as fast. -->
+    <TieredCompilation>false</TieredCompilation>
     <!-- WFO0003 targets WinForms-first apps; this is a WPF app that declares PerMonitorV2 in its manifest. -->
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
   </PropertyGroup>
