@@ -96,10 +96,12 @@ The screenshots in `docs/images/` come from an isolated instance filled with mad
    ```
    `HideFromScreenCapture` must be off, or the launcher is invisible to screenshot tools.
 2. Copy some demo clips. Secrets auto-delete after 10 minutes, so copy those last.
-3. Put a plain window behind the launcher so the desktop wallpaper doesn't tint the acrylic.
-4. Capture the window at 100% display scaling and save it as PNG under the existing name. The launcher closes when
-   it loses focus, so use a capture that doesn't take focus, e.g. a delayed capture or `Graphics.CopyFromScreen`
-   of the window's bounds from a script.
+3. Cover the screen with a borderless full-screen window showing an abstract wallpaper (soft colour blobs on a
+   dark background for dark-theme shots, pastel on light for light-theme ones). It keeps your real desktop out of the
+   shots and gives the acrylic something to pick up.
+4. Capture at 100% display scaling, including about 230 px of wallpaper left and right of the launcher and 150 px
+   above and below it, so the window's shadow shows, and save as PNG under the existing name. The launcher closes
+   when it loses focus, so use a capture that doesn't take focus, e.g. `Graphics.CopyFromScreen` from a script.
 
 ## Release checklist
 

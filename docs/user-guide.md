@@ -160,7 +160,7 @@ A clip is sent only when you run an action on it, and **secrets are never sent**
 
 Open with **Ctrl+,** in the launcher, the ⚙ button, the tray menu, or `Clipt.exe --settings`.
 
-<img src="images/settings.png" width="450" alt="The Settings window, General section: shortcut, Win+V takeover, paste directly, start with Windows and appearance">
+<img src="images/settings.png" width="560" alt="The Settings window, General section: shortcut, Win+V takeover, paste directly, start with Windows and appearance">
 
 | Setting | Default | Notes |
 |---|---|---|
