@@ -97,6 +97,26 @@ public partial class LauncherWindow : Window
         _vm.CancelAi();
         _vm.ConcealAll();
         Hide();
+        ClipItem.ReleasePreviews();
+        _trimTimer ??= new System.Windows.Threading.DispatcherTimer(TimeSpan.FromSeconds(5),
+            System.Windows.Threading.DispatcherPriority.ApplicationIdle, (_, _) => TrimMemory(), Dispatcher);
+        _trimTimer.Stop();
+        _trimTimer.Start();
+    }
+
+    private System.Windows.Threading.DispatcherTimer? _trimTimer;
+
+    /// <summary>
+    /// Clipt spends most of its life hidden in the tray: give back what the launcher used (decoded images,
+    /// search results) instead of holding it until the next garbage collection happens to need it.
+    /// </summary>
+    private void TrimMemory()
+    {
+        _trimTimer?.Stop();
+        if (IsVisible) return;
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+        GC.WaitForPendingFinalizers();
+        Win32.SetProcessWorkingSetSize(Win32.GetCurrentProcess(), new IntPtr(-1), new IntPtr(-1));
     }
 
     private void PositionOnActiveMonitor()

@@ -221,16 +221,116 @@ public sealed partial class ClipItem : ObservableObject
 
     // ---------- Images (decrypted in memory, never written back to disk in plaintext) ----------
 
-    private ImageSource? _thumbnail;
-    public ImageSource? Thumbnail => ShowThumbnail ? _thumbnail ??= LoadImage(96) : null;
+    // Images are decoded on background threads so scrolling and arrowing through the list never waits for them.
+    // Thumbnails are small and kept per clip; full previews are large, so only the last few are kept.
 
-    public ImageSource? PreviewImage => Kind == ClipKind.Image && !IsMasked ? LoadImage(Math.Min(ImageWidth, 1600)) : null;
+    /// <summary>Reads and writes the small encrypted list thumbnail; set once at startup by the app.</summary>
+    public static Func<string?, byte[]?>? ThumbnailReader { get; set; }
+    public static Action<string, byte[]>? ThumbnailWriter { get; set; }
+
+    private const int ThumbnailWidth = 96;
+    private const int PreviewCacheSize = 3;
+    private static readonly SemaphoreSlim Decoder = new(2);
+    private static readonly List<(ClipItem item, ImageSource image)> PreviewCache = []; // UI thread only, most recent first
+    private static ClipItem? _latestPreviewRequest;
+
+    private ImageSource? _thumbnail;
+    private bool _thumbnailRequested;
+    public ImageSource? Thumbnail
+    {
+        get
+        {
+            if (!ShowThumbnail) return null;
+            if (_thumbnail is null && !_thumbnailRequested)
+            {
+                _thumbnailRequested = true;
+                _ = LoadThumbnailAsync();
+            }
+            return _thumbnail;
+        }
+    }
+
+    private bool _previewLoading;
+    public ImageSource? PreviewImage
+    {
+        get
+        {
+            if (Kind != ClipKind.Image || IsMasked) return null;
+            int i = PreviewCache.FindIndex(e => e.item == this);
+            if (i >= 0)
+            {
+                var hit = PreviewCache[i];
+                PreviewCache.RemoveAt(i);
+                PreviewCache.Insert(0, hit);
+                return hit.image;
+            }
+            _latestPreviewRequest = this;
+            if (!_previewLoading)
+            {
+                _previewLoading = true;
+                _ = LoadPreviewAsync();
+            }
+            return null;
+        }
+    }
+
+    /// <summary>Drops the decoded full-size previews (called when the launcher hides).</summary>
+    public static void ReleasePreviews()
+    {
+        PreviewCache.Clear();
+        _latestPreviewRequest = null;
+    }
 
     public ImageSource? AppIcon => AppIconCache.Get(SourcePath);
 
-    private ImageSource? LoadImage(int decodeWidth)
+    private async Task LoadThumbnailAsync()
     {
-        var bytes = ImageReader?.Invoke(ImagePath);
+        await Decoder.WaitAsync();
+        try { _thumbnail = await Task.Run(BuildThumbnail); }
+        finally { Decoder.Release(); }
+        if (_thumbnail is not null) OnPropertyChanged(nameof(Thumbnail));
+    }
+
+    private ImageSource? BuildThumbnail()
+    {
+        if (Decode(ThumbnailReader?.Invoke(ImagePath), 0) is { } stored) return stored;
+
+        // First time this image is shown: make the thumbnail from the full image and keep it for next time.
+        var thumb = Decode(ImageReader?.Invoke(ImagePath), ThumbnailWidth);
+        if (thumb is not null && ImagePath is not null && ThumbnailWriter is { } write)
+        {
+            try
+            {
+                var enc = new PngBitmapEncoder();
+                enc.Frames.Add(BitmapFrame.Create(thumb));
+                using var ms = new MemoryStream();
+                enc.Save(ms);
+                write(ImagePath, ms.ToArray());
+            }
+            catch { /* the in-memory thumbnail still works */ }
+        }
+        return thumb;
+    }
+
+    private async Task LoadPreviewAsync()
+    {
+        try
+        {
+            // Holding an arrow key moves the selection faster than images decode: only decode where it stops.
+            await Task.Delay(60);
+            if (_latestPreviewRequest != this) return;
+            int width = Math.Min(ImageWidth, 1600);
+            var image = await Task.Run(() => Decode(ImageReader?.Invoke(ImagePath), width));
+            if (image is null || _latestPreviewRequest != this) return;
+            PreviewCache.Insert(0, (this, image));
+            if (PreviewCache.Count > PreviewCacheSize) PreviewCache.RemoveAt(PreviewCache.Count - 1);
+            OnPropertyChanged(nameof(PreviewImage));
+        }
+        finally { _previewLoading = false; }
+    }
+
+    private static BitmapImage? Decode(byte[]? bytes, int decodeWidth)
+    {
         if (bytes is null) return null;
         try
         {

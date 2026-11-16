@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Much lower memory use while Clipt sits in the tray: memory used by the launcher is released a few seconds after it closes.
+- Images are decoded in the background, so the list stays responsive. Small encrypted thumbnails are saved
+  next to each image, and only the last few full-size previews are kept in memory.
+
 ## 0.1.0 — 2026-11-16
 
 First release.

@@ -194,6 +194,38 @@ public sealed class StorageSecurityTests : IDisposable
     }
 
     [Fact]
+    public void Thumbnails_are_encrypted_and_deleted_with_their_image()
+    {
+        var store = new ClipStore(_dir, _vault);
+        var img = new ClipItem { Kind = ClipKind.Image, ImageWidth = 1, ImageHeight = 1, Hash = "img:thumb" };
+        img.ImagePath = store.WriteImage([1, 2, 3], img.Hash);
+        var stored = store.Upsert(img);
+
+        var thumb = Encoding.ASCII.GetBytes("\x89PNG\r\n\x1a\nMarkerThumbnailBytes");
+        store.WriteThumbnail(stored.ImagePath!, thumb);
+        var thumbPath = ClipStore.ThumbnailPath(stored.ImagePath!);
+        Assert.True(File.Exists(thumbPath));
+        Assert.Equal(-1, Encoding.ASCII.GetString(File.ReadAllBytes(thumbPath)).IndexOf("MarkerThumbnailBytes", StringComparison.Ordinal));
+        Assert.Equal(thumb, store.ReadThumbnail(stored.ImagePath));
+
+        store.Delete(stored.Id);
+        Assert.False(File.Exists(thumbPath));
+    }
+
+    [Fact]
+    public void No_thumbnail_is_written_for_a_deleted_image()
+    {
+        var store = new ClipStore(_dir, _vault);
+        var img = new ClipItem { Kind = ClipKind.Image, ImageWidth = 1, ImageHeight = 1, Hash = "img:gone" };
+        img.ImagePath = store.WriteImage([1, 2, 3], img.Hash);
+        var stored = store.Upsert(img);
+        store.Delete(stored.Id);
+
+        store.WriteThumbnail(stored.ImagePath!, [4, 5, 6]);
+        Assert.False(File.Exists(ClipStore.ThumbnailPath(stored.ImagePath!)));
+    }
+
+    [Fact]
     public void Legacy_plaintext_store_is_migrated_and_destroyed()
     {
         // Build a v0.1 (unencrypted) database exactly like the first release did.

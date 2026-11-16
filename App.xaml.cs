@@ -67,6 +67,8 @@ public partial class App : Application
         Settings = AppSettings.Load();
         Store = new ClipStore(AppSettings.DataDir, OpenVault());
         ClipItem.ImageReader = Store.ReadImage;
+        ClipItem.ThumbnailReader = Store.ReadThumbnail;
+        ClipItem.ThumbnailWriter = Store.WriteThumbnail;
         ClipItem.SensitiveTtl = TimeSpan.FromMinutes(Settings.SensitiveTtlMinutes);
         Monitor = new ClipboardMonitor(Store, () => Settings);
         Paste = new PasteService(Store, Monitor);

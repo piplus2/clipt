@@ -128,6 +128,36 @@ public sealed class ClipStore
         catch { return null; }
     }
 
+    /// <summary>The small list thumbnail stored next to an image, so scrolling doesn't decode full-size images.</summary>
+    internal static string ThumbnailPath(string imagePath) => Path.ChangeExtension(imagePath, ".thumb");
+
+    public byte[]? ReadThumbnail(string? imagePath)
+    {
+        if (imagePath is null) return null;
+        var path = ThumbnailPath(imagePath);
+        if (!File.Exists(path)) return null;
+        try { return _vault.Decrypt(File.ReadAllBytes(path), "thumbnail"); }
+        catch { return null; }
+    }
+
+    public void WriteThumbnail(string imagePath, byte[] png)
+    {
+        var data = _vault.Encrypt(png, "thumbnail");
+        var path = ThumbnailPath(imagePath);
+        var tmp = path + ".tmp";
+        // Under the store lock, so a clip deleted meanwhile can't be left with an orphaned thumbnail.
+        lock (_gate)
+        {
+            if (!File.Exists(imagePath)) return;
+            try
+            {
+                File.WriteAllBytes(tmp, data);
+                File.Move(tmp, path, overwrite: true);
+            }
+            catch { try { File.Delete(tmp); } catch { } }
+        }
+    }
+
     // ---------- writes ----------
 
     /// <summary>Inserts a new clip, or bumps an identical existing one to the top. Returns the stored item.</summary>
@@ -377,6 +407,7 @@ public sealed class ClipStore
                 if (image is not null)
                 {
                     try { File.Delete(image); } catch { /* encrypted anyway */ }
+                    try { File.Delete(ThumbnailPath(image)); } catch { }
                 }
             }
             // Checkpoint so deleted pages don't linger in the WAL file.

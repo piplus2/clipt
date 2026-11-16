@@ -228,7 +228,7 @@ Everything is in `%LOCALAPPDATA%\Clipt`:
 | File | Contents |
 |---|---|
 | `clips.db` (+ `-wal`, `-shm`) | Your history, **encrypted** |
-| `images\*.clip` | Copied images, **encrypted** |
+| `images\*.clip`, `images\*.thumb` | Copied images and their list thumbnails, **encrypted** |
 | `vault.key` | The encryption key, locked to your Windows account |
 | `settings.json` | Preferences (the API key inside is encrypted) |
 | `clipt.log` | Error log, if anything went wrong |

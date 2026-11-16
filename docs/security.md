@@ -39,7 +39,7 @@ Clipt also doesn't protect against an administrator who installs software on the
 | Context binding | The column name is passed as associated data, so a ciphertext can't be moved to another column (for example `html` → `text`) without failing authentication |
 | Blob format | `[version 1 byte][nonce 12][tag 16][ciphertext]` |
 
-**What's encrypted:** the text, HTML, RTF, OCR text, source-app name, source-app path and every image file.
+**What's encrypted:** the text, HTML, RTF, OCR text, source-app name, source-app path, every image file and its list thumbnail (`.thumb`).
 The database keeps only non-identifying metadata in the clear: kind, timestamps, image dimensions, pinned/sensitive
 flags and the generic reason label ("Looks like a password").
 
@@ -125,7 +125,7 @@ These copies are never recorded:
   - the key file is DPAPI-wrapped
 - **No plaintext on disk:** after storing text, HTML, RTF, an image and OCR text, every byte of every file in the data
   folder is scanned for the original strings (UTF-8 and UTF-16), with a positive control proving the scan catches leaks.
-- **Search and retention:** sensitive clips aren't searchable by content; they expire unless pinned; deleting a clip removes its image file.
+- **Search and retention:** sensitive clips aren't searchable by content; they expire unless pinned; deleting a clip removes its image file and thumbnail.
 - **Migration:** a v0.1 plaintext database is migrated, re-scanned for secrets, and destroyed.
 
 Run them with `dotnet test tests/Clipt.Tests`.
