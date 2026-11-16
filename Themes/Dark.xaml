@@ -1,0 +1,26 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Layer drawn over the system acrylic. -->
+    <SolidColorBrush x:Key="Bg.Overlay" Color="#7A101014" />
+    <!-- Used when no system backdrop is available (Windows 10). -->
+    <SolidColorBrush x:Key="Bg.Fallback" Color="#FF1E1E22" />
+    <SolidColorBrush x:Key="Bg.Settings" Color="#40101014" />
+
+    <SolidColorBrush x:Key="Fg.Primary" Color="#F2FFFFFF" />
+    <SolidColorBrush x:Key="Fg.Secondary" Color="#A6FFFFFF" />
+    <SolidColorBrush x:Key="Fg.Tertiary" Color="#6BFFFFFF" />
+
+    <SolidColorBrush x:Key="Stroke.Divider" Color="#17FFFFFF" />
+    <SolidColorBrush x:Key="Stroke.Control" Color="#24FFFFFF" />
+
+    <SolidColorBrush x:Key="Bg.Hover" Color="#0FFFFFFF" />
+    <SolidColorBrush x:Key="Bg.Selected" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="Bg.Icon" Color="#14FFFFFF" />
+    <SolidColorBrush x:Key="Bg.Kbd" Color="#1AFFFFFF" />
+    <SolidColorBrush x:Key="Bg.Control" Color="#14FFFFFF" />
+    <SolidColorBrush x:Key="Bg.ControlHover" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="Bg.Card" Color="#0DFFFFFF" />
+    <SolidColorBrush x:Key="Bg.Menu" Color="#FF2B2B30" />
+    <SolidColorBrush x:Key="Bg.Danger" Color="#33FF5A5A" />
+    <SolidColorBrush x:Key="Fg.Danger" Color="#FFFF8A8A" />
+</ResourceDictionary>
