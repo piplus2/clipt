@@ -2,52 +2,70 @@
 
 ## Requirements
 
-- Windows 10 2004+ (Windows 11 22H2+ for the acrylic/mica look)
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- To run the Windows build: Windows 10 2004+ (Windows 11 22H2+ for the acrylic/mica look)
+- To run the Linux build: an X11 session with libX11, libXfixes and libXtst (standard on desktops); optionally libXRes,
+  libsecret and `tesseract`
+- Both targets build on either OS (`EnableWindowsTargeting`), so a Linux CI also catches Windows compile errors.
 - Any editor: Visual Studio, Rider, or VS Code with C# Dev Kit
 
 ## Build, run, test
 
-```powershell
-dotnet build                       # Debug build
-dotnet run                         # run it
-dotnet test tests/Clipt.Tests      # security & storage tests
+```sh
+dotnet build                                   # both targets
+dotnet run -f net10.0                          # run on Linux
+dotnet run -f net10.0-windows10.0.22621.0      # run on Windows
+dotnet test tests/Clipt.Tests                  # any OS, against the net10.0 build
 ```
 
 ### Run an isolated instance
 
 Set `CLIPT_DATA_DIR` to use a separate history and settings folder. In this mode Clipt also never writes the
-*Start with Windows* registry entry. This is the safest way to develop without touching your real history.
+autostart entry. This is the safest way to develop without touching your real history.
 
-```powershell
-$env:CLIPT_DATA_DIR = "$env:TEMP\clipt-dev"
-dotnet run -- --background
+```sh
+CLIPT_DATA_DIR=/tmp/clipt-dev dotnet run -f net10.0 -- --background     # Linux
 ```
 
-Clipt is single-instance per user session. Quit any running copy (tray → Quit) before starting another build.
+```powershell
+$env:CLIPT_DATA_DIR = "$env:TEMP\clipt-dev"                              # Windows
+dotnet run -f net10.0-windows10.0.22621.0 -- --background
+```
+
+Clipt is single-instance per user. Quit any running copy (tray → Quit) before starting another build.
+On Linux the vault key is still wrapped by your real keyring (entry "Clipt clipboard history key"), even in this mode.
 
 ### Publish
 
 ```powershell
-dotnet publish Clipt.csproj -c Release -r win-x64 --self-contained false `
+# Windows: publish\Clipt.exe, framework-dependent
+dotnet publish Clipt.csproj -c Release -f net10.0-windows10.0.22621.0 -r win-x64 --self-contained false `
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 ```
 
-This produces `publish\Clipt.exe` (~40 MB, framework-dependent). Users need the
+```sh
+# Linux: publish/Clipt, a single self-contained executable (~115 MB)
+dotnet publish Clipt.csproj -c Release -f net10.0 -r linux-x64 --self-contained true \
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+```
+
+The framework-dependent Windows build needs the
 [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
 Use `--self-contained true` for a build that doesn't need the runtime installed. It's considerably larger.
 
 ## Project layout
 
 ```
-Clipt.csproj, app.manifest, App.xaml(.cs)
-Models/        ClipItem (display logic, masking), ObservableObject
-Native/        Win32 P/Invoke, DWM effects, message-only window
-Services/      capture, storage, crypto, detection, paste, hotkeys, OCR, AI, settings, app catalog
-UI/            launcher, settings, app picker, tray, converters, smooth scrolling, icon
-Themes/        Dark.xaml / Light.xaml brushes, Controls.xaml styles
+Clipt.csproj, app.manifest (Windows), Program.cs, App.axaml(.cs)
+Models/              ClipItem (display logic, masking), ObservableObject
+Platform/            IPlatform (the OS boundary) and PlatformDefaults
+Platform/Windows/    Win32, clipboard, hotkey, Win+V hook, tray, OCR, DPAPI        (Windows build only)
+Platform/Linux/      X11 session (clipboard, hotkey, paste), keyring, Tesseract, tray, .desktop entries   (Linux build only)
+Services/            capture, storage, crypto, detection, paste, hotkeys, images, AI, settings, app catalog
+UI/                  launcher, settings, app picker, dialogs, highlighter, icon
+Themes/              Controls.axaml styles (theme brushes live in App.axaml)
 tests/Clipt.Tests/   xUnit tests (referenced by the main project via InternalsVisibleTo)
-docs/          user guide, security, architecture, this file
+docs/                user guide, security, architecture, this file
 ```
 
 See [architecture.md](architecture.md) for how the pieces fit together.
@@ -61,8 +79,10 @@ See [architecture.md](architecture.md) for how the pieces fit together.
 - **Sensitive clips** must stay masked, unsearchable by content, out of AI and out of rich formats. If you add a new
   surface that shows or exports clip content, check `ClipItem.IsMasked` / `Sensitive`.
 - **Typing goes to the search box.** Controls in the launcher are non-focusable on purpose. Handle mouse input explicitly.
-- **Theme resources:** use `DynamicResource` brushes from `Themes/*.xaml` (`Fg.*`, `Bg.*`, `Stroke.*`, `Accent*`) so light/dark
+- **Theme resources:** use `DynamicResource` brushes from `App.axaml` (`Fg.*`, `Bg.*`, `Stroke.*`, `Accent*`) so light/dark
   and accent changes apply live.
+- **OS-specific code goes behind `IPlatform`.** Shared code must not call Win32, Xlib or OS tools directly. When you add
+  a member, implement it for both OSes and build both targets.
 - **Pinned dependencies.** Don't use floating versions.
 
 ## Common tasks
@@ -76,13 +96,13 @@ See [architecture.md](architecture.md) for how the pieces fit together.
 
 ### Add an AI action
 
-Add an `AiAction` to `AiService.ActionsFor` with a name, a Segoe Fluent icon glyph, an instruction, and whether it applies to
+Add an `AiAction` to `AiService.ActionsFor` with a name, a Fluent System Icons name (`FluentIcons.Common.Icon`), an instruction, and whether it applies to
 text and/or images. The system prompt already asks for paste-ready output.
 
 ### Add a setting
 
 1. Add a property with a default in `Services/AppSettings.cs`. If it changes meaning, migrate it in `Normalize()`.
-2. Add a row to `UI/SettingsWindow.xaml` and load/save it in `SettingsWindow.xaml.cs` (`Collect()`).
+2. Add a row to `UI/SettingsWindow.axaml` and load/save it in `SettingsWindow.axaml.cs` (`Collect()`).
 3. Apply it in `App.ApplySettings()` if it affects running services.
 4. Document it in [user-guide.md](user-guide.md#settings-reference).
 
@@ -107,8 +127,9 @@ The screenshots in `docs/images/` come from an isolated instance filled with mad
 
 - [ ] `dotnet test tests/Clipt.Tests` passes
 - [ ] Bump `<Version>` in `Clipt.csproj`, update `CHANGELOG.md`
-- [ ] Publish and smoke-test the exe with `CLIPT_DATA_DIR` pointing to a fresh folder:
+- [ ] `dotnet build` (both targets)
+- [ ] Publish and smoke-test on Windows and on Linux (X11) with `CLIPT_DATA_DIR` pointing to a fresh folder:
   - copy text, a link, a colour, an image and a fake password
   - search, paste, and check the secret is masked
 - [ ] Check `dotnet list package --vulnerable --include-transitive` is clean
-- [ ] Tag the release and attach `Clipt.exe`
+- [ ] Tag the release and attach `Clipt-<version>-win-x64.exe` and `Clipt-<version>-linux-x64`

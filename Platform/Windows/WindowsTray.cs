@@ -1,14 +1,14 @@
 using System.Windows.Forms;
 
-namespace Clipt.UI;
+namespace Clipt.Platform.Windows;
 
-public sealed class TrayIcon : IDisposable
+internal sealed class WindowsTray : ITray
 {
     private readonly NotifyIcon _icon;
     private readonly ToolStripMenuItem _open;
     private readonly ToolStripMenuItem _pause;
 
-    public TrayIcon(App app)
+    public WindowsTray(App app)
     {
         _open = new ToolStripMenuItem("Open Clipt", null, (_, _) => app.ShowLauncher()) { Font = new System.Drawing.Font(SystemInformation.MenuFont, System.Drawing.FontStyle.Bold) };
         _pause = new ToolStripMenuItem("Pause recording", null, (_, _) => app.TogglePause()) { CheckOnClick = false };
@@ -23,7 +23,7 @@ public sealed class TrayIcon : IDisposable
 
         _icon = new NotifyIcon
         {
-            Icon = IconFactory.CreateIcon(32),
+            Icon = CreateIcon(),
             Text = "Clipt",
             ContextMenuStrip = menu,
             Visible = true,
@@ -40,6 +40,14 @@ public sealed class TrayIcon : IDisposable
 
     public void Notify(string title, string text) =>
         _icon.ShowBalloonTip(4000, title, text, ToolTipIcon.None);
+
+    /// <summary>The Clipt logo (drawn in code, see UI/IconFactory) as a Windows icon.</summary>
+    private static System.Drawing.Icon CreateIcon()
+    {
+        using var ms = new MemoryStream(UI.IconFactory.Png(32));
+        using var bmp = new System.Drawing.Bitmap(ms);
+        return System.Drawing.Icon.FromHandle(bmp.GetHicon());
+    }
 
     public void Dispose()
     {

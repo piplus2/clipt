@@ -1,21 +1,16 @@
 using System.Diagnostics;
-using System.IO;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Threading;
+using Avalonia.Threading;
 using Clipt.Models;
-using Clipt.Native;
+using Clipt.Platform;
 
 namespace Clipt.Services;
 
 /// <summary>
-/// Listens to WM_CLIPBOARDUPDATE and turns clipboard contents into <see cref="ClipItem"/>s.
-/// Honors the Windows conventions password managers use to opt out of clipboard history.
+/// Turns clipboard changes into <see cref="ClipItem"/>s. Honors the conventions password managers use to opt out
+/// of clipboard history (Windows clipboard formats, KDE's x-kde-passwordManagerHint on Linux).
 /// </summary>
 public sealed partial class ClipboardMonitor
 {
@@ -23,27 +18,30 @@ public sealed partial class ClipboardMonitor
     private const long MaxImagePixels = 40_000_000;
 
     private readonly ClipStore _store;
+    private readonly IPlatform _platform;
     private readonly Func<AppSettings> _settings;
     private readonly DispatcherTimer _debounce;
     private readonly int _ownPid = Environment.ProcessId;
-    private uint _ownSequence;
-    private uint _lastSequence;
+    private bool _capturing;
+    private bool _pendingAfterCapture;
+    private string? _lastHash;
 
     public event Action<ClipItem>? Captured;
 
     public bool Paused { get; set; }
 
-    public ClipboardMonitor(ClipStore store, Func<AppSettings> settings)
+    public ClipboardMonitor(ClipStore store, IPlatform platform, Func<AppSettings> settings)
     {
         _store = store;
+        _platform = platform;
         _settings = settings;
         // Many apps write the clipboard in several steps; wait for them to finish.
         _debounce = new DispatcherTimer(TimeSpan.FromMilliseconds(120), DispatcherPriority.Background, (_, _) =>
         {
             _debounce!.Stop();
-            Capture();
-        }, Dispatcher.CurrentDispatcher);
-        _debounce.Stop();
+            _ = CaptureAsync();
+        });
+        platform.ClipboardChanged += OnClipboardUpdate;
     }
 
     public void OnClipboardUpdate()
@@ -52,60 +50,68 @@ public sealed partial class ClipboardMonitor
         _debounce.Start();
     }
 
-    /// <summary>Call right after Clipt itself writes the clipboard so the change isn't re-captured.</summary>
-    public void MarkOwnChange() => _ownSequence = Win32.GetClipboardSequenceNumber();
-
-    private void Capture()
+    private async Task CaptureAsync()
     {
         if (Paused) return;
-        uint seq = Win32.GetClipboardSequenceNumber();
-        if (seq == _lastSequence || seq == _ownSequence) return;
-        _lastSequence = seq;
-
-        var (pid, appName, appPath) = GetSourceProcess();
-        if (pid == _ownPid) return;
-
-        var settings = _settings();
-        if (settings.IsExcluded(appPath)) return;
-        if (settings.SkipPrivateWindows && IsPrivateBrowserWindow(Win32.GetForegroundWindow())) return;
-
-        IDataObject? data = Retry(Clipboard.GetDataObject);
-        if (data is null) return;
-
-        if (Has(data, "ExcludeClipboardContentFromMonitorProcessing") ||
-            Has(data, "Clipboard Viewer Ignore") ||
-            (Has(data, "CanIncludeInClipboardHistory") && ReadDword(data, "CanIncludeInClipboardHistory") == 0))
-            return;
-
-        ClipItem? item = null;
-        try { item = Read(data, settings); }
-        catch (Exception ex) { Debug.WriteLine($"Clipt: failed to read clipboard: {ex}"); }
-        if (item is null) return;
-
-        if (settings.DetectSensitive && item.Kind != ClipKind.Image && SensitiveDetector.Detect(item.Text) is { } reason)
+        if (_capturing) { _pendingAfterCapture = true; return; }
+        _capturing = true;
+        try
         {
-            if (settings.SensitiveHandling == "Skip") return;
-            item.SetSensitive(true, reason);
-            item.Html = item.Rtf = null; // keep only what's needed to paste it back
-        }
+            var source = _platform.GetClipboardSource();
+            if (source.Pid == _ownPid) return;
 
-        item.SourceApp = appName;
-        item.SourcePath = appPath;
-        var stored = _store.Upsert(item);
-        Captured?.Invoke(stored);
+            var settings = _settings();
+            if (settings.IsExcluded(source.Path)) return;
+            if (settings.SkipPrivateWindows && _platform.GetActiveWindowTitle() is { } title && IsPrivateBrowserTitle(title)) return;
+
+            ClipboardContent? content;
+            try { content = await _platform.ReadClipboardAsync(settings.CaptureImages); }
+            catch (Exception ex) { Debug.WriteLine($"Clipt: failed to read clipboard: {ex}"); return; }
+            if (content is null || content.IsPrivate || Paused) return;
+
+            ClipItem? item = null;
+            try { item = await Task.Run(() => Read(content, settings)); }
+            catch (Exception ex) { Debug.WriteLine($"Clipt: failed to read clipboard: {ex}"); }
+            if (item is null) return;
+
+            if (settings.DetectSensitive && item.Kind != ClipKind.Image && SensitiveDetector.Detect(item.Text) is { } reason)
+            {
+                if (settings.SensitiveHandling == "Skip") return;
+                item.SetSensitive(true, reason);
+                item.Html = item.Rtf = null; // keep only what's needed to paste it back
+            }
+
+            // The desktop took over the clip we just recorded because the app that copied it quit: not a new copy.
+            if (item.Hash == _lastHash && _platform.IsClipboardKeeper(source)) return;
+
+            item.SourceApp = source.Name;
+            item.SourcePath = source.Path;
+            _lastHash = item.Hash;
+            var stored = _store.Upsert(item);
+            Captured?.Invoke(stored);
+        }
+        finally
+        {
+            _capturing = false;
+            if (_pendingAfterCapture)
+            {
+                _pendingAfterCapture = false;
+                OnClipboardUpdate();
+            }
+        }
     }
 
-    private ClipItem? Read(IDataObject data, AppSettings settings)
+    private ClipItem? Read(ClipboardContent data, AppSettings settings)
     {
-        // 1. Files from Explorer & co.
-        if (Get(data, DataFormats.FileDrop) is string[] { Length: > 0 } files)
+        // 1. Files from the file manager.
+        if (data.Files is { Length: > 0 } files)
         {
             var joined = string.Join("\n", files);
             return new ClipItem { Kind = ClipKind.Files, Text = joined, Hash = Sha("files:" + joined) };
         }
 
         // 2. Text (Office/Excel also put a bitmap on the clipboard: text wins).
-        var text = Get(data, DataFormats.UnicodeText) as string ?? Get(data, DataFormats.Text) as string;
+        var text = data.Text;
         if (!string.IsNullOrWhiteSpace(text))
         {
             if (text.Length > MaxTextLength) text = text[..MaxTextLength];
@@ -113,68 +119,25 @@ public sealed partial class ClipboardMonitor
             {
                 Kind = Classify(text),
                 Text = text,
-                Html = Get(data, DataFormats.Html) as string,
-                Rtf = Get(data, DataFormats.Rtf) as string,
+                Html = data.Html,
+                Rtf = data.Rtf,
                 Hash = Sha("text:" + text),
             };
         }
 
         // 3. Images.
-        if (settings.CaptureImages)
+        if (settings.CaptureImages && data.Image is { } encoded && ImageCodec.Normalize(encoded, MaxImagePixels) is { } image)
         {
-            var bmp = ReadImage(data);
-            if (bmp is not null && (long)bmp.PixelWidth * bmp.PixelHeight <= MaxImagePixels)
-                return SaveImage(bmp);
-        }
-        return null;
-    }
-
-    private ClipItem SaveImage(BitmapSource bmp)
-    {
-        var src = new FormatConvertedBitmap(bmp, PixelFormats.Bgra32, null, 0);
-        int stride = src.PixelWidth * 4;
-        var pixels = new byte[stride * src.PixelHeight];
-        src.CopyPixels(pixels, stride, 0);
-
-        // Some apps hand out 32-bit DIBs with an all-zero alpha channel: treat as opaque.
-        bool allTransparent = true;
-        for (int i = 3; i < pixels.Length; i += 4) if (pixels[i] != 0) { allTransparent = false; break; }
-        if (allTransparent) for (int i = 3; i < pixels.Length; i += 4) pixels[i] = 255;
-
-        var hashBytes = SHA256.HashData(pixels.Concat(BitConverter.GetBytes(src.PixelWidth)).ToArray());
-        var hash = "img:" + Convert.ToHexString(hashBytes);
-
-        var final = BitmapSource.Create(src.PixelWidth, src.PixelHeight, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
-        var enc = new PngBitmapEncoder();
-        enc.Frames.Add(BitmapFrame.Create(final));
-        using var ms = new MemoryStream();
-        enc.Save(ms);
-        var path = _store.WriteImage(ms.ToArray(), hash); // encrypted on disk
-
-        return new ClipItem
-        {
-            Kind = ClipKind.Image,
-            ImagePath = path,
-            ImageWidth = src.PixelWidth,
-            ImageHeight = src.PixelHeight,
-            Hash = hash,
-        };
-    }
-
-    private static BitmapSource? ReadImage(IDataObject data)
-    {
-        // Prefer the lossless "PNG" format (browsers, Office, Snipping Tool) – it keeps transparency.
-        if (Get(data, "PNG") is MemoryStream png)
-        {
-            try
+            var path = _store.WriteImage(image.Png, image.Hash); // encrypted on disk
+            return new ClipItem
             {
-                var dec = BitmapDecoder.Create(png, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
-                return dec.Frames[0];
-            }
-            catch { /* fall through */ }
+                Kind = ClipKind.Image,
+                ImagePath = path,
+                ImageWidth = image.Width,
+                ImageHeight = image.Height,
+                Hash = image.Hash,
+            };
         }
-        if (Has(data, DataFormats.Bitmap) || Has(data, DataFormats.Dib))
-            return Retry(Clipboard.GetImage);
         return null;
     }
 
@@ -214,80 +177,12 @@ public sealed partial class ClipboardMonitor
     /// Private/incognito windows of browsers that expose it in the window title (Edge, Firefox, Brave, Opera, Vivaldi).
     /// Chrome's incognito title carries no marker, so it can't be detected this way.
     /// </summary>
-    public static bool IsPrivateBrowserWindow(IntPtr hwnd)
-    {
-        if (hwnd == IntPtr.Zero) return false;
-        var sb = new StringBuilder(512);
-        if (Win32.GetWindowText(hwnd, sb, sb.Capacity) <= 0) return false;
-        return IsPrivateBrowserTitle(sb.ToString());
-    }
-
     public static bool IsPrivateBrowserTitle(string title) =>
         title.Contains("InPrivate", StringComparison.Ordinal) ||
         title.Contains("Private Browsing", StringComparison.OrdinalIgnoreCase) ||
         title.Contains("Private Window", StringComparison.OrdinalIgnoreCase) ||
         title.EndsWith("(Private)", StringComparison.OrdinalIgnoreCase) ||
         title.Contains("Incognito", StringComparison.OrdinalIgnoreCase);
-
-    private static (int pid, string? name, string? path) GetSourceProcess()
-    {
-        var hwnd = Win32.GetClipboardOwner();
-        if (hwnd == IntPtr.Zero) hwnd = Win32.GetForegroundWindow();
-        if (hwnd == IntPtr.Zero) return (0, null, null);
-        Win32.GetWindowThreadProcessId(hwnd, out uint pid);
-        try
-        {
-            using var p = Process.GetProcessById((int)pid);
-            string? path = null;
-            try { path = p.MainModule?.FileName; } catch { /* elevated or protected process */ }
-            string? name = null;
-            if (path is not null)
-            {
-                try { name = FileVersionInfo.GetVersionInfo(path).FileDescription; } catch { }
-            }
-            if (string.IsNullOrWhiteSpace(name)) name = p.ProcessName;
-            return ((int)pid, name, path);
-        }
-        catch { return ((int)pid, null, null); }
-    }
-
-    private static bool Has(IDataObject d, string format)
-    {
-        try { return d.GetDataPresent(format, false); } catch { return false; }
-    }
-
-    private static object? Get(IDataObject d, string format)
-    {
-        try { return d.GetDataPresent(format, false) ? d.GetData(format, false) : null; }
-        catch { return null; }
-    }
-
-    private static int ReadDword(IDataObject d, string format)
-    {
-        if (Get(d, format) is MemoryStream ms && ms.Length >= 4)
-        {
-            var b = new byte[4];
-            ms.Position = 0;
-            ms.ReadExactly(b);
-            return BitConverter.ToInt32(b);
-        }
-        return -1;
-    }
-
-    /// <summary>The clipboard is a shared, lockable resource; another process may briefly hold it.</summary>
-    public static T? Retry<T>(Func<T?> action, int attempts = 6)
-    {
-        for (int i = 0; i < attempts; i++)
-        {
-            try { return action(); }
-            catch (COMException) { Thread.Sleep(25 * (i + 1)); }
-            catch (ExternalException) { Thread.Sleep(25 * (i + 1)); }
-        }
-        return default;
-    }
-
-    public static void Retry(Action action, int attempts = 6) =>
-        Retry<object?>(() => { action(); return null; }, attempts);
 
     private static string Sha(string s) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(s)));
 

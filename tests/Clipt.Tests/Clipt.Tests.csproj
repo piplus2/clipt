@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
-    <UseWPF>true</UseWPF>
+    <!-- Tests run on any OS against the cross-platform (Linux) build of Clipt; nothing here needs a display. -->
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>

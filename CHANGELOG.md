@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.0 — Unreleased
+
+### Added
+
+- **Linux support (X11).** One codebase for both systems:
+  - Clipboard capture with XFixes, and its own clipboard owner, including large transfers.
+  - Global shortcut with `XGrabKey`, and paste-back with XTest. Terminals get Ctrl+Shift+V.
+  - Encryption key in the desktop keyring (Secret Service).
+  - OCR with Tesseract when it's installed.
+  - Tray icon via StatusNotifierItem, autostart via an XDG autostart entry.
+  - App names and icons from .desktop files.
+  - Honors KDE's `x-kde-passwordManagerHint` (set by KeePassXC and others) and sets it on secrets Clipt pastes.
+
+### Changed
+
+- The UI moved from WPF to Avalonia; icons are now Fluent System Icons. Settings and dialogs use the system title bar.
+- Each OS implements one platform interface (`Platform/IPlatform.cs`); everything else is shared.
+
 ## 0.1.1 — 2026-11-16
 
 ### Changed

@@ -9,6 +9,7 @@ using Clipt.Models;
 
 namespace Clipt.Services;
 
+/// <param name="Glyph">Fluent icon name (FluentIcons.Common.Icon).</param>
 public sealed record AiAction(string Name, string Glyph, string Instruction, bool ForText = true, bool ForImages = false)
 {
     public bool IsCustom { get; init; }
@@ -18,7 +19,7 @@ public sealed record AiAction(string Name, string Glyph, string Instruction, boo
 public sealed class AiService
 {
     private const string SystemPrompt =
-        "You are the assistant inside Clipt, a clipboard manager for Windows. The user selected an item from their " +
+        "You are the assistant inside Clipt, a clipboard manager for Windows and Linux. The user selected an item from their " +
         "clipboard history (given inside <clip> tags, or attached as an image) and asked you to transform or analyse it. " +
         "Reply with only the result, ready to paste: no preamble, no closing remarks, no surrounding quotes. " +
         "Preserve the language of the original unless asked to translate. Use Markdown only when the request calls for structure " +
@@ -40,19 +41,19 @@ public sealed class AiService
         var lang = _settings().TranslateTo;
         var all = new List<AiAction>
         {
-            new("Summarize", "", "Summarize this concisely."),
-            new("Improve writing", "", "Rewrite this to be clearer and more polished while keeping its meaning and tone."),
-            new("Fix spelling & grammar", "", "Fix spelling, grammar and punctuation. Change as little as possible."),
-            new("Make shorter", "", "Make this noticeably shorter while keeping the key points."),
-            new("Make it professional", "", "Rewrite this in a clear, professional tone."),
-            new("Make it friendly", "", "Rewrite this in a warm, friendly, casual tone."),
-            new("Bullet points", "", "Turn this into a concise bulleted list."),
-            new($"Translate to {lang}", "", $"Translate this into {lang}. If it is already in {lang}, translate it into English."),
-            new("Explain", "", "Explain what this is and what it means, briefly and clearly. If it is code, explain what it does."),
-            new("Reply to this", "", "Draft a short, helpful reply to this message."),
-            new("Describe image", "", "Describe this image in detail.", ForText: false, ForImages: true),
-            new("Extract text", "", "Transcribe all text visible in this image exactly, preserving line breaks.", ForText: false, ForImages: true),
-            new("Image to alt text", "", "Write concise, useful alt text for this image (one sentence).", ForText: false, ForImages: true),
+            new("Summarize", "TextBulletListSquare", "Summarize this concisely."),
+            new("Improve writing", "Edit", "Rewrite this to be clearer and more polished while keeping its meaning and tone."),
+            new("Fix spelling & grammar", "TextProofingTools", "Fix spelling, grammar and punctuation. Change as little as possible."),
+            new("Make shorter", "TextCollapse", "Make this noticeably shorter while keeping the key points."),
+            new("Make it professional", "Briefcase", "Rewrite this in a clear, professional tone."),
+            new("Make it friendly", "EmojiSmileSlight", "Rewrite this in a warm, friendly, casual tone."),
+            new("Bullet points", "TextBulletList", "Turn this into a concise bulleted list."),
+            new($"Translate to {lang}", "Translate", $"Translate this into {lang}. If it is already in {lang}, translate it into English."),
+            new("Explain", "Info", "Explain what this is and what it means, briefly and clearly. If it is code, explain what it does."),
+            new("Reply to this", "ArrowReply", "Draft a short, helpful reply to this message."),
+            new("Describe image", "ImageSearch", "Describe this image in detail.", ForText: false, ForImages: true),
+            new("Extract text", "ScanText", "Transcribe all text visible in this image exactly, preserving line breaks.", ForText: false, ForImages: true),
+            new("Image to alt text", "ImageAltText", "Write concise, useful alt text for this image (one sentence).", ForText: false, ForImages: true),
         };
         bool image = item.Kind == ClipKind.Image;
         return all.Where(a => image ? a.ForImages : a.ForText).ToList();

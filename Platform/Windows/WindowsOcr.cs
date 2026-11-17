@@ -3,20 +3,22 @@ using Windows.Graphics.Imaging;
 using Windows.Media.Ocr;
 using Windows.Storage.Streams;
 
-namespace Clipt.Services;
+namespace Clipt.Platform.Windows;
 
 /// <summary>Uses the OCR engine built into Windows (offline, no extra download) to make images searchable.</summary>
-public sealed class OcrService
+internal sealed class WindowsOcr : IOcrEngine
 {
-    private readonly OcrEngine? _engine = OcrEngine.TryCreateFromUserProfileLanguages();
+    private readonly OcrEngine _engine;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
-    public bool Available => _engine is not null;
+    private WindowsOcr(OcrEngine engine) => _engine = engine;
+
+    public static WindowsOcr? TryCreate() =>
+        OcrEngine.TryCreateFromUserProfileLanguages() is { } engine ? new WindowsOcr(engine) : null;
 
     /// <summary>Recognises text in an (already decrypted) image held in memory. Nothing touches the disk.</summary>
     public async Task<string?> RecognizeAsync(byte[] imageBytes)
     {
-        if (_engine is null) return null;
         await _gate.WaitAsync();
         try
         {

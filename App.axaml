@@ -1,0 +1,81 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Clipt.App"
+             Name="Clipt"
+             RequestedThemeVariant="Default">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <!-- Layer drawn over the system acrylic / blur. -->
+                    <SolidColorBrush x:Key="Bg.Overlay" Color="#7A101014" />
+                    <!-- Used when no system backdrop is available (Windows 10, most Linux desktops). -->
+                    <SolidColorBrush x:Key="Bg.Fallback" Color="#FF1E1E22" />
+                    <SolidColorBrush x:Key="Bg.Settings" Color="#40101014" />
+
+                    <SolidColorBrush x:Key="Fg.Primary" Color="#F2FFFFFF" />
+                    <SolidColorBrush x:Key="Fg.Secondary" Color="#A6FFFFFF" />
+                    <SolidColorBrush x:Key="Fg.Tertiary" Color="#6BFFFFFF" />
+
+                    <SolidColorBrush x:Key="Stroke.Divider" Color="#17FFFFFF" />
+                    <SolidColorBrush x:Key="Stroke.Control" Color="#24FFFFFF" />
+
+                    <SolidColorBrush x:Key="Bg.Hover" Color="#0FFFFFFF" />
+                    <SolidColorBrush x:Key="Bg.Selected" Color="#1FFFFFFF" />
+                    <SolidColorBrush x:Key="Bg.Icon" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="Bg.Kbd" Color="#1AFFFFFF" />
+                    <SolidColorBrush x:Key="Bg.Control" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="Bg.ControlHover" Color="#1FFFFFFF" />
+                    <SolidColorBrush x:Key="Bg.Card" Color="#0DFFFFFF" />
+                    <SolidColorBrush x:Key="Bg.Menu" Color="#FF2B2B30" />
+                    <SolidColorBrush x:Key="Bg.Danger" Color="#33FF5A5A" />
+                    <SolidColorBrush x:Key="Fg.Danger" Color="#FFFF8A8A" />
+
+                    <!-- Accent brushes are replaced at runtime with the OS accent colour where there is one. -->
+                    <SolidColorBrush x:Key="Accent" Color="#FF4CC2FF" />
+                    <SolidColorBrush x:Key="Accent.Soft" Color="#454CC2FF" />
+                    <SolidColorBrush x:Key="Accent.Fg" Color="#FF000000" />
+                    <SolidColorBrush x:Key="Fg.Highlight" Color="#FF4CC2FF" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="Bg.Overlay" Color="#8CFAFAFC" />
+                    <SolidColorBrush x:Key="Bg.Fallback" Color="#FFF6F6F8" />
+                    <SolidColorBrush x:Key="Bg.Settings" Color="#40FAFAFC" />
+
+                    <SolidColorBrush x:Key="Fg.Primary" Color="#E6000000" />
+                    <SolidColorBrush x:Key="Fg.Secondary" Color="#99000000" />
+                    <SolidColorBrush x:Key="Fg.Tertiary" Color="#6B000000" />
+
+                    <SolidColorBrush x:Key="Stroke.Divider" Color="#14000000" />
+                    <SolidColorBrush x:Key="Stroke.Control" Color="#1F000000" />
+
+                    <SolidColorBrush x:Key="Bg.Hover" Color="#0A000000" />
+                    <SolidColorBrush x:Key="Bg.Selected" Color="#14000000" />
+                    <SolidColorBrush x:Key="Bg.Icon" Color="#0D000000" />
+                    <SolidColorBrush x:Key="Bg.Kbd" Color="#12000000" />
+                    <SolidColorBrush x:Key="Bg.Control" Color="#B3FFFFFF" />
+                    <SolidColorBrush x:Key="Bg.ControlHover" Color="#E6FFFFFF" />
+                    <SolidColorBrush x:Key="Bg.Card" Color="#80FFFFFF" />
+                    <SolidColorBrush x:Key="Bg.Menu" Color="#FFFBFBFD" />
+                    <SolidColorBrush x:Key="Bg.Danger" Color="#1FD13438" />
+                    <SolidColorBrush x:Key="Fg.Danger" Color="#FFC42B1C" />
+
+                    <SolidColorBrush x:Key="Accent" Color="#FF0067C0" />
+                    <SolidColorBrush x:Key="Accent.Soft" Color="#2E0067C0" />
+                    <SolidColorBrush x:Key="Accent.Fg" Color="#FFFFFFFF" />
+                    <SolidColorBrush x:Key="Fg.Highlight" Color="#FF0067C0" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!-- Windows fonts first, then the usual Linux desktop fonts. -->
+            <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI, Inter, Cantarell, Ubuntu, Noto Sans, DejaVu Sans</FontFamily>
+            <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI, Inter Display, Inter, Cantarell, Ubuntu, Noto Sans, DejaVu Sans</FontFamily>
+            <FontFamily x:Key="MonoFont">Cascadia Mono, Cascadia Code, Consolas, JetBrains Mono, Ubuntu Mono, Noto Sans Mono, DejaVu Sans Mono</FontFamily>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://Clipt/Themes/Controls.axaml" />
+    </Application.Styles>
+</Application>

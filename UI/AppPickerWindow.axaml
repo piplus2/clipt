@@ -1,0 +1,53 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:s="using:Clipt.Services"
+        xmlns:fi="using:FluentIcons.Avalonia"
+        x:Class="Clipt.UI.AppPickerWindow"
+        Title="Don't record copies from…" Width="480" Height="560"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" CanResize="False"
+        TransparencyLevelHint="Mica, None">
+
+    <Border x:Name="Root" Background="{DynamicResource Bg.Fallback}">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <Border Margin="20,16,20,10" CornerRadius="8" Background="{DynamicResource Bg.Control}"
+                    BorderBrush="{DynamicResource Stroke.Control}" BorderThickness="1" Padding="12,0">
+                <Grid Height="38" ColumnDefinitions="Auto,*">
+                    <fi:FluentIcon Classes="glyph" Icon="Search" FontSize="15" />
+                    <TextBox x:Name="SearchBox" Grid.Column="1" Margin="10,0,0,0" Classes="bare" FontSize="14"
+                             VerticalAlignment="Center" PlaceholderText="Search apps" />
+                </Grid>
+            </Border>
+
+            <Panel Grid.Row="1">
+                <ListBox x:Name="AppList" Classes="rows" Margin="4,0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="s:AppEntry">
+                            <Grid ColumnDefinitions="28,*,Auto" Height="30">
+                                <Image Width="24" Height="24" Source="{Binding Icon}" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                <TextBlock Grid.Column="1" Margin="12,0,8,0" Text="{Binding Name}" FontSize="13.5"
+                                           Foreground="{DynamicResource Fg.Primary}" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Path}" />
+                                <TextBlock Grid.Column="2" Text="{Binding OriginLabel}" FontSize="11.5"
+                                           Foreground="{DynamicResource Fg.Tertiary}" VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock x:Name="LoadingText" Text="Finding your apps…" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           FontSize="13" Foreground="{DynamicResource Fg.Tertiary}" />
+            </Panel>
+
+            <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource Stroke.Divider}" Padding="20,12">
+                <DockPanel>
+                    <Button x:Name="BrowseButton" DockPanel.Dock="Left" Classes="btn" Content="Browse…" Click="Browse_Click"
+                            ToolTip.Tip="Pick a program file yourself" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Classes="btn" Content="Cancel" Click="Cancel_Click" Margin="0,0,8,0" MinWidth="80" />
+                        <Button x:Name="AddButton" Classes="btn accent" Content="Add" Click="Add_Click" MinWidth="80"
+                                IsDefault="True" IsEnabled="False" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

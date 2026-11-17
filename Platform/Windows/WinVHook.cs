@@ -1,20 +1,18 @@
 using System.Runtime.InteropServices;
-using System.Windows.Threading;
-using Clipt.Native;
+using Avalonia.Threading;
 
-namespace Clipt.Services;
+namespace Clipt.Platform.Windows;
 
 /// <summary>
 /// Optional low-level keyboard hook that takes over Win+V (the built-in clipboard history shortcut).
 /// Win+key combos owned by the shell cannot be claimed with RegisterHotKey, so we intercept them here.
 /// </summary>
-public sealed class WinVHook : IDisposable
+internal sealed class WinVHook : IDisposable
 {
     // An unassigned virtual key: injecting it stops the Start menu from opening when Win is released.
     private const int VK_DUMMY = 0xE8;
 
     private readonly Action _onTrigger;
-    private readonly Dispatcher _dispatcher;
     private readonly Win32.LowLevelKeyboardProc _proc; // keep a reference so the GC doesn't collect it
     private IntPtr _hook;
     private bool _swallowKeyUp;
@@ -22,7 +20,6 @@ public sealed class WinVHook : IDisposable
     public WinVHook(Action onTrigger)
     {
         _onTrigger = onTrigger;
-        _dispatcher = Dispatcher.CurrentDispatcher;
         _proc = HookProc;
     }
 
@@ -53,7 +50,7 @@ public sealed class WinVHook : IDisposable
                 {
                     Win32.SendKeys(Win32.Key(VK_DUMMY, false), Win32.Key(VK_DUMMY, true));
                     _swallowKeyUp = true;
-                    _dispatcher.BeginInvoke(_onTrigger);
+                    Dispatcher.UIThread.Post(_onTrigger);
                     return new IntPtr(1);
                 }
                 if (msg is Win32.WM_KEYUP or Win32.WM_SYSKEYUP && _swallowKeyUp)

@@ -1,13 +1,14 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using Clipt.Platform;
 
 namespace Clipt.Services;
 
 /// <summary>
 /// Encryption at rest for the clipboard history.
-/// A random 256-bit master key is generated once and stored wrapped with Windows DPAPI (CurrentUser scope),
-/// so it can only be unwrapped by the same Windows account on the same machine. Clip data is encrypted with
+/// A random 256-bit master key is generated once and stored wrapped by the OS (<see cref="IKeyProtector"/>:
+/// DPAPI on Windows, the desktop keyring on Linux), so only the same user account can unwrap it. Clip data is encrypted with
 /// AES-256-GCM (authenticated); content fingerprints for de-duplication use HMAC-SHA256 so the database
 /// cannot be used to test whether a known secret was ever copied.
 /// </summary>
@@ -32,24 +33,24 @@ public sealed class CryptoVault
 
     /// <summary>Loads the vault key, creating one on first run.</summary>
     /// <exception cref="CryptographicException">The key exists but can't be unwrapped (different user/machine, reset password).</exception>
-    public static CryptoVault Open(string dataDir)
+    public static CryptoVault Open(string dataDir, IKeyProtector protector)
     {
         var path = Path.Combine(dataDir, KeyFileName);
         if (File.Exists(path))
         {
-            var key = ProtectedData.Unprotect(File.ReadAllBytes(path), DpapiEntropy, DataProtectionScope.CurrentUser);
+            var key = protector.Unprotect(File.ReadAllBytes(path), DpapiEntropy);
             return new CryptoVault(key);
         }
 
         var fresh = RandomNumberGenerator.GetBytes(32);
-        var wrapped = ProtectedData.Protect(fresh, DpapiEntropy, DataProtectionScope.CurrentUser);
+        var wrapped = protector.Protect(fresh, DpapiEntropy);
         var tmp = path + ".tmp";
         File.WriteAllBytes(tmp, wrapped);
         File.Move(tmp, path, overwrite: true);
         return new CryptoVault(fresh);
     }
 
-    /// <summary>For tests: a vault with an explicit key and no DPAPI.</summary>
+    /// <summary>For tests: a vault with an explicit key and no OS key protection.</summary>
     internal static CryptoVault ForTesting(byte[] key) => new((byte[])key.Clone());
 
     // Layout: [version:1][nonce:12][tag:16][ciphertext:n]

@@ -1,0 +1,271 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:Clipt.UI"
+        xmlns:m="using:Clipt.Models"
+        xmlns:s="using:Clipt.Services"
+        xmlns:fi="using:FluentIcons.Avalonia"
+        x:Class="Clipt.UI.LauncherWindow"
+        x:DataType="ui:LauncherViewModel"
+        Title="Clipt" Width="820" Height="520"
+        WindowDecorations="None" CanResize="False"
+        ShowInTaskbar="False" Topmost="True"
+        WindowStartupLocation="Manual"
+        Background="Transparent"
+        TransparencyLevelHint="AcrylicBlur, Blur, Transparent">
+
+    <Window.Resources>
+        <!-- ===== List rows ===== -->
+        <DataTemplate x:Key="ClipRow" x:DataType="m:ClipItem">
+            <Grid Height="38" ColumnDefinitions="30,*,Auto">
+                <Border Width="30" Height="30" CornerRadius="7" Background="{DynamicResource Bg.Icon}" IsVisible="{Binding HasGlyph}">
+                    <fi:FluentIcon Classes="glyph" FontSize="16" Icon="{Binding Glyph, Converter={x:Static ui:IconNameConverter.Instance}}" />
+                </Border>
+                <Border Width="30" Height="30" CornerRadius="7" BorderThickness="1" BorderBrush="{DynamicResource Stroke.Divider}"
+                        ClipToBounds="True" IsVisible="{Binding ShowThumbnail}">
+                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                </Border>
+                <Border Width="30" Height="30" CornerRadius="7" BorderThickness="1" BorderBrush="{DynamicResource Stroke.Control}"
+                        Background="{Binding ColorBrush}" IsVisible="{Binding ShowColorSwatch}" />
+
+                <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
+                    <TextBlock ui:Highlighter.Query="{Binding $parent[ListBox].((ui:LauncherViewModel)DataContext).Query}"
+                               ui:Highlighter.Text="{Binding Title}"
+                               Foreground="{DynamicResource Fg.Primary}" FontSize="13.5" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource Fg.Tertiary}" FontSize="11.5"
+                               Margin="0,1,0,0" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <fi:FluentIcon Grid.Column="2" Classes="glyph" Icon="Pin" IconVariant="Filled" FontSize="13"
+                               Foreground="{DynamicResource Accent}" IsVisible="{Binding Pinned}" />
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ActionRow" x:DataType="s:AiAction">
+            <Grid Height="34" ColumnDefinitions="28,*">
+                <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource Bg.Icon}">
+                    <fi:FluentIcon Classes="glyph" FontSize="15" Icon="{Binding Glyph, Converter={x:Static ui:IconNameConverter.Instance}}" />
+                </Border>
+                <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Text="{Binding Name}"
+                           Foreground="{DynamicResource Fg.Primary}" FontSize="13.5" TextTrimming="CharacterEllipsis" />
+            </Grid>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{DynamicResource Bg.Fallback}" ClipToBounds="True">
+        <Border.Transitions>
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.11" />
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.17" Easing="CubicEaseOut" />
+            </Transitions>
+        </Border.Transitions>
+        <Grid RowDefinitions="64,Auto,1,*,Auto">
+
+            <!-- ===== Search bar ===== -->
+            <Grid Grid.Row="0" Margin="24,0,14,0" ColumnDefinitions="22,*,Auto,Auto">
+                <fi:FluentIcon Classes="glyph" Icon="Search" FontSize="20" IsVisible="{Binding IsBrowse}" />
+                <TextBlock Text="✦" FontSize="19" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="{DynamicResource Accent}" IsVisible="{Binding IsAi}" />
+
+                <Grid Grid.Column="1" Margin="14,0,8,0" VerticalAlignment="Center">
+                    <TextBox x:Name="SearchBox" Classes="bare" FontSize="21" FontFamily="{StaticResource DisplayFont}"
+                             Text="{Binding Query, Mode=TwoWay}" />
+                    <TextBlock Text="{Binding Placeholder}" IsHitTestVisible="False" FontSize="21" Margin="2,0,0,0"
+                               FontFamily="{StaticResource DisplayFont}" Foreground="{DynamicResource Fg.Tertiary}"
+                               VerticalAlignment="Center" IsVisible="{Binding !Query.Length}" />
+                </Grid>
+
+                <Border Grid.Column="2" CornerRadius="10" Padding="9,3" Margin="0,0,6,0" VerticalAlignment="Center"
+                        Background="{DynamicResource Accent.Soft}" IsVisible="{Binding IsAi}">
+                    <TextBlock Text="{Binding AiProvider}" FontSize="11.5" Foreground="{DynamicResource Fg.Primary}" />
+                </Border>
+
+                <Button Grid.Column="3" Classes="icon" ToolTip.Tip="Settings (Ctrl+,)" Click="Settings_Click">
+                    <fi:FluentIcon Icon="Settings" FontSize="17"
+                                   Foreground="{Binding $parent[Button].Foreground}" />
+                </Button>
+            </Grid>
+
+            <!-- ===== Filter chips ===== -->
+            <ItemsControl Grid.Row="1" ItemsSource="{Binding Filters}" Margin="20,0,20,10" Focusable="False"
+                          IsVisible="{Binding IsBrowse}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="ui:FilterOption">
+                        <RadioButton Classes="chip" GroupName="Filters" Content="{Binding Name}"
+                                     IsChecked="{Binding IsChecked, Mode=TwoWay}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Grid.Row="2" Background="{DynamicResource Stroke.Divider}" />
+
+            <!-- ===== Body ===== -->
+            <Grid Grid.Row="3" ColumnDefinitions="330,1,*">
+
+                <ListBox x:Name="ClipList" Classes="rows" ItemTemplate="{StaticResource ClipRow}" ItemsSource="{Binding Items}"
+                         SelectedItem="{Binding Selected, Mode=TwoWay}" IsVisible="{Binding IsBrowse}">
+                    <ListBox.ContextMenu>
+                        <ContextMenu x:Name="ClipMenu">
+                            <MenuItem Header="Paste" InputGesture="Enter" Click="Menu_Paste" />
+                            <MenuItem Header="Paste as plain text" InputGesture="Shift+Enter" Click="Menu_PastePlain" />
+                            <MenuItem Header="Copy" InputGesture="Ctrl+Enter" Click="Menu_Copy" />
+                            <Separator />
+                            <MenuItem x:Name="OpenMenuItem" Header="Open" InputGesture="Ctrl+O" Click="Menu_Open" />
+                            <MenuItem Header="Pin / Unpin" InputGesture="Ctrl+P" Click="Menu_Pin" />
+                            <MenuItem x:Name="AiMenuItem" Header="AI actions…" InputGesture="Tab" Click="Menu_Ai" />
+                            <Separator />
+                            <MenuItem x:Name="RevealMenuItem" Header="Show content" InputGesture="Ctrl+R" Click="Menu_Reveal" />
+                            <MenuItem x:Name="SensitiveMenuItem" Header="Mark as sensitive" InputGesture="Ctrl+H" Click="Menu_Sensitive" />
+                            <MenuItem x:Name="ExcludeMenuItem" Header="Never record from this app" Click="Menu_ExcludeApp" />
+                            <Separator />
+                            <MenuItem Header="Delete" InputGesture="Shift+Delete" Click="Menu_Delete" />
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                </ListBox>
+
+                <ListBox x:Name="ActionList" Classes="rows" ItemTemplate="{StaticResource ActionRow}" ItemsSource="{Binding Actions}"
+                         SelectedItem="{Binding SelectedAction, Mode=TwoWay}" IsVisible="{Binding IsAi}" />
+
+                <StackPanel Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding ShowEmpty}">
+                    <fi:FluentIcon Classes="glyph" Icon="ClipboardMultiple" FontSize="38" Foreground="{DynamicResource Fg.Tertiary}" />
+                    <TextBlock Text="{Binding EmptyText}" Margin="0,14,0,0" FontSize="14" Foreground="{DynamicResource Fg.Secondary}"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+
+                <Border Grid.Column="1" Background="{DynamicResource Stroke.Divider}" IsVisible="{Binding !ShowEmpty}" />
+
+                <!-- Clip preview -->
+                <Grid Grid.Column="2" Margin="22,18,20,12" RowDefinitions="*,Auto" IsVisible="{Binding ShowClipPreview}">
+                    <Panel DataContext="{Binding Selected}" x:DataType="m:ClipItem">
+                        <!-- Text & code -->
+                        <TextBox Classes="preview" Classes.short="{Binding IsShortText}" Classes.code="{Binding IsCode}"
+                                 Text="{Binding PreviewText, Mode=OneWay}" IsVisible="{Binding IsTextPreview}" />
+
+                        <!-- Link -->
+                        <StackPanel VerticalAlignment="Top" IsVisible="{Binding IsLinkPreview}">
+                            <Border Width="44" Height="44" CornerRadius="10" Background="{DynamicResource Bg.Icon}" HorizontalAlignment="Left">
+                                <fi:FluentIcon Classes="glyph" Icon="Globe" FontSize="22" />
+                            </Border>
+                            <TextBlock Text="{Binding LinkHost}" Margin="0,14,0,0" FontFamily="{StaticResource DisplayFont}"
+                                       FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource Fg.Primary}" TextTrimming="CharacterEllipsis" />
+                            <TextBox Classes="preview" Margin="0,6,0,0" FontSize="12.5" Foreground="{DynamicResource Fg.Secondary}"
+                                     MaxHeight="220" Text="{Binding Text, Mode=OneWay}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                <Border Classes="kbd"><TextBlock Text="Ctrl O" /></Border>
+                                <TextBlock Text="Open in browser" FontSize="12" Foreground="{DynamicResource Fg.Tertiary}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Colour -->
+                        <StackPanel VerticalAlignment="Top" IsVisible="{Binding IsColorPreview}">
+                            <Border Height="150" CornerRadius="14" Background="{Binding ColorBrush}"
+                                    BorderThickness="1" BorderBrush="{DynamicResource Stroke.Control}" />
+                            <TextBox Classes="preview" Margin="0,16,0,0" FontFamily="{StaticResource MonoFont}"
+                                     FontSize="13" Text="{Binding ColorInfo, Mode=OneWay}" />
+                        </StackPanel>
+
+                        <!-- Image -->
+                        <Grid RowDefinitions="*,Auto" IsVisible="{Binding IsImagePreview}">
+                            <Border CornerRadius="10" ClipToBounds="True" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Image Source="{Binding PreviewImage}" Stretch="Uniform" StretchDirection="DownOnly"
+                                       RenderOptions.BitmapInterpolationMode="HighQuality" />
+                            </Border>
+                            <StackPanel Grid.Row="1" Margin="0,12,0,0" IsVisible="{Binding HasOcrText}">
+                                <TextBlock Text="TEXT IN IMAGE" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource Fg.Tertiary}" />
+                                <TextBox Classes="preview" MaxHeight="80" Margin="0,4,0,0" FontSize="12.5"
+                                         Foreground="{DynamicResource Fg.Secondary}" Text="{Binding OcrText, Mode=OneWay}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Files -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" IsVisible="{Binding IsFilesPreview}">
+                            <ItemsControl ItemsSource="{Binding Paths}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <Grid Margin="0,0,0,10" ColumnDefinitions="28,*">
+                                            <fi:FluentIcon Classes="glyph" Icon="Document" FontSize="16" VerticalAlignment="Top" Margin="0,1,0,0" />
+                                            <TextBlock Grid.Column="1" Text="{Binding}" TextWrapping="Wrap" FontSize="13"
+                                                       Foreground="{DynamicResource Fg.Primary}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <!-- Sensitive (masked) -->
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsVisible="{Binding IsMasked}">
+                            <Border Width="52" Height="52" CornerRadius="14" Background="{DynamicResource Bg.Icon}" HorizontalAlignment="Center">
+                                <fi:FluentIcon Classes="glyph" Icon="LockClosed" FontSize="24" Foreground="{DynamicResource Fg.Primary}" />
+                            </Border>
+                            <TextBlock Text="{Binding PreviewText}" Margin="0,16,0,0" HorizontalAlignment="Center" FontSize="22"
+                                       Foreground="{DynamicResource Fg.Secondary}" />
+                            <TextBlock Text="{Binding SensitiveReason}" Margin="0,8,0,0" HorizontalAlignment="Center" FontSize="13"
+                                       FontWeight="SemiBold" Foreground="{DynamicResource Fg.Primary}" />
+                            <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" FontSize="12" TextAlignment="Center"
+                                       Foreground="{DynamicResource Fg.Tertiary}" TextWrapping="Wrap" MaxWidth="320"
+                                       Text="Stored encrypted, kept out of search and AI, and wiped from the clipboard 30 s after pasting." />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                                <Border Classes="kbd"><TextBlock Text="Ctrl R" /></Border>
+                                <TextBlock Text="Show" FontSize="12" Foreground="{DynamicResource Fg.Tertiary}" VerticalAlignment="Center" Margin="0,0,14,0" />
+                                <Border Classes="kbd"><TextBlock Text="↵" /></Border>
+                                <TextBlock Text="Paste without showing" FontSize="12" Foreground="{DynamicResource Fg.Tertiary}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Panel>
+
+                    <Grid Grid.Row="1" Margin="0,12,0,0" ColumnDefinitions="Auto,Auto,*">
+                        <Image Width="16" Height="16" Margin="0,0,7,0" Source="{Binding Selected.AppIcon}"
+                               RenderOptions.BitmapInterpolationMode="HighQuality" />
+                        <TextBlock Grid.Column="1" Text="{Binding Selected.SourceApp}" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Fg.Secondary}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <TextBlock Grid.Column="2" Text="{Binding Selected.Details}" FontSize="12"
+                                   Foreground="{DynamicResource Fg.Tertiary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                </Grid>
+
+                <!-- AI result -->
+                <Grid Grid.Column="2" Margin="22,18,20,12" RowDefinitions="Auto,*,Auto" IsVisible="{Binding IsAiResult}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="✦" FontSize="14" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock Text="{Binding AiTitle}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Fg.Primary}"
+                                   TextTrimming="CharacterEllipsis" MaxWidth="400" />
+                    </StackPanel>
+                    <TextBox Grid.Row="1" Margin="0,12,0,0" Classes="preview" Text="{Binding AiOutput, Mode=OneWay}" />
+                    <StackPanel Grid.Row="2" Margin="0,10,0,0">
+                        <TextBlock Text="Thinking…" FontSize="12" Foreground="{DynamicResource Fg.Tertiary}" IsVisible="{Binding AiBusy}" />
+                        <TextBlock Text="{Binding AiError}" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource Fg.Danger}"
+                                   IsVisible="{Binding AiError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!-- ===== Footer ===== -->
+            <Border Grid.Row="4" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource Stroke.Divider}" Padding="18,9,18,10">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding StatusText}" FontSize="11.5"
+                               Foreground="{DynamicResource Fg.Tertiary}" VerticalAlignment="Center" />
+                    <ItemsControl ItemsSource="{Binding Hints}" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="ui:Hint">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
+                                    <Border Classes="kbd"><TextBlock Text="{Binding Keys}" /></Border>
+                                    <TextBlock Text="{Binding Label}" FontSize="11.5" Foreground="{DynamicResource Fg.Tertiary}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

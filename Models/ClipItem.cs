@@ -1,9 +1,8 @@
 using System.Globalization;
-using System.IO;
 using System.Text.RegularExpressions;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using Avalonia.Media;
+using Avalonia.Media.Immutable;
+using Avalonia.Media.Imaging;
 using Clipt.Services;
 
 namespace Clipt.Models;
@@ -68,7 +67,8 @@ public sealed partial class ClipItem : ObservableObject
     {
         foreach (var p in new[] { nameof(Sensitive), nameof(SensitiveReason), nameof(IsRevealed), nameof(IsMasked), nameof(Title),
                      nameof(Subtitle), nameof(PreviewText), nameof(Glyph), nameof(HasGlyph), nameof(ShowThumbnail),
-                     nameof(ShowColorSwatch), nameof(Thumbnail), nameof(PreviewImage), nameof(HasOcrText), nameof(Details) })
+                     nameof(ShowColorSwatch), nameof(Thumbnail), nameof(PreviewImage), nameof(HasOcrText), nameof(Details),
+                     nameof(IsTextPreview), nameof(IsLinkPreview), nameof(IsColorPreview), nameof(IsImagePreview), nameof(IsFilesPreview) })
             OnPropertyChanged(p);
     }
 
@@ -79,14 +79,23 @@ public sealed partial class ClipItem : ObservableObject
     public bool ShowColorSwatch => Kind == ClipKind.Color && !IsMasked;
     public bool HasGlyph => !ShowThumbnail && !ShowColorSwatch;
 
-    public string Glyph => IsMasked ? "" : Kind switch
+    // Which preview layout the launcher shows (sensitive clips always get the masked one).
+    public bool IsTextPreview => !IsMasked && Kind is ClipKind.Text or ClipKind.Code;
+    public bool IsLinkPreview => !IsMasked && Kind == ClipKind.Link;
+    public bool IsColorPreview => !IsMasked && Kind == ClipKind.Color;
+    public bool IsImagePreview => !IsMasked && Kind == ClipKind.Image;
+    public bool IsFilesPreview => !IsMasked && Kind == ClipKind.Files;
+    public bool IsCode => Kind == ClipKind.Code;
+
+    /// <summary>Fluent icon name (FluentIcons.Common.Icon) for the clip's kind.</summary>
+    public string Glyph => IsMasked ? "LockClosed" : Kind switch
     {
-        ClipKind.Link => "",
-        ClipKind.Code => "",
-        ClipKind.Files => "",
-        ClipKind.Image => "",
-        ClipKind.Color => "",
-        _ => "",
+        ClipKind.Link => "Link",
+        ClipKind.Code => "Code",
+        ClipKind.Files => "Folder",
+        ClipKind.Image => "Image",
+        ClipKind.Color => "Color",
+        _ => "TextDescription",
     };
 
     public string KindLabel => Kind switch
@@ -119,8 +128,8 @@ public sealed partial class ClipItem : ObservableObject
                     return p.Length switch
                     {
                         0 => "Files",
-                        1 => Path.GetFileName(p[0].TrimEnd('\\')) is { Length: > 0 } n ? n : p[0],
-                        _ => $"{p.Length} items · " + string.Join(", ", p.Take(3).Select(x => Path.GetFileName(x.TrimEnd('\\')))),
+                        1 => Path.GetFileName(p[0].TrimEnd('\\', '/')) is { Length: > 0 } n ? n : p[0],
+                        _ => $"{p.Length} items · " + string.Join(", ", p.Take(3).Select(x => Path.GetFileName(x.TrimEnd('\\', '/')))),
                     };
                 default:
                     var t = Text ?? "";
@@ -205,7 +214,7 @@ public sealed partial class ClipItem : ObservableObject
 
     // ---------- Colors ----------
 
-    public Brush? ColorBrush => Kind == ClipKind.Color && ColorParser.TryParse(Text, out var c) ? Frozen(new SolidColorBrush(c)) : null;
+    public IBrush? ColorBrush => Kind == ClipKind.Color && ColorParser.TryParse(Text, out var c) ? new ImmutableSolidColorBrush(c) : null;
 
     public string? ColorInfo
     {
@@ -231,12 +240,12 @@ public sealed partial class ClipItem : ObservableObject
     private const int ThumbnailWidth = 96;
     private const int PreviewCacheSize = 3;
     private static readonly SemaphoreSlim Decoder = new(2);
-    private static readonly List<(ClipItem item, ImageSource image)> PreviewCache = []; // UI thread only, most recent first
+    private static readonly List<(ClipItem item, Bitmap image)> PreviewCache = []; // UI thread only, most recent first
     private static ClipItem? _latestPreviewRequest;
 
-    private ImageSource? _thumbnail;
+    private Bitmap? _thumbnail;
     private bool _thumbnailRequested;
-    public ImageSource? Thumbnail
+    public Bitmap? Thumbnail
     {
         get
         {
@@ -251,7 +260,7 @@ public sealed partial class ClipItem : ObservableObject
     }
 
     private bool _previewLoading;
-    public ImageSource? PreviewImage
+    public Bitmap? PreviewImage
     {
         get
         {
@@ -281,7 +290,7 @@ public sealed partial class ClipItem : ObservableObject
         _latestPreviewRequest = null;
     }
 
-    public ImageSource? AppIcon => AppIconCache.Get(SourcePath);
+    public Bitmap? AppIcon => AppIconCache.Get(SourcePath);
 
     private async Task LoadThumbnailAsync()
     {
@@ -291,25 +300,21 @@ public sealed partial class ClipItem : ObservableObject
         if (_thumbnail is not null) OnPropertyChanged(nameof(Thumbnail));
     }
 
-    private ImageSource? BuildThumbnail()
+    private Bitmap? BuildThumbnail()
     {
         if (Decode(ThumbnailReader?.Invoke(ImagePath), 0) is { } stored) return stored;
 
         // First time this image is shown: make the thumbnail from the full image and keep it for next time.
-        var thumb = Decode(ImageReader?.Invoke(ImagePath), ThumbnailWidth);
-        if (thumb is not null && ImagePath is not null && ThumbnailWriter is { } write)
+        if (ImageReader?.Invoke(ImagePath) is not { } full) return null;
+        byte[]? png = null;
+        try { png = ImageCodec.Downscale(full, ThumbnailWidth); } catch { }
+        if (png is null) return Decode(full, ThumbnailWidth);
+        if (ImagePath is not null && ThumbnailWriter is { } write)
         {
-            try
-            {
-                var enc = new PngBitmapEncoder();
-                enc.Frames.Add(BitmapFrame.Create(thumb));
-                using var ms = new MemoryStream();
-                enc.Save(ms);
-                write(ImagePath, ms.ToArray());
-            }
+            try { write(ImagePath, png); }
             catch { /* the in-memory thumbnail still works */ }
         }
-        return thumb;
+        return Decode(png, 0);
     }
 
     private async Task LoadPreviewAsync()
@@ -329,20 +334,15 @@ public sealed partial class ClipItem : ObservableObject
         finally { _previewLoading = false; }
     }
 
-    private static BitmapImage? Decode(byte[]? bytes, int decodeWidth)
+    private static Bitmap? Decode(byte[]? bytes, int decodeWidth)
     {
         if (bytes is null) return null;
         try
         {
-            var bmp = new BitmapImage();
-            bmp.BeginInit();
-            bmp.CacheOption = BitmapCacheOption.OnLoad;
-            bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-            bmp.StreamSource = new MemoryStream(bytes);
-            if (decodeWidth > 0) bmp.DecodePixelWidth = decodeWidth;
-            bmp.EndInit();
-            bmp.Freeze();
-            return bmp;
+            using var ms = new MemoryStream(bytes);
+            return decodeWidth > 0
+                ? Bitmap.DecodeToWidth(ms, decodeWidth, BitmapInterpolationMode.HighQuality)
+                : new Bitmap(ms);
         }
         catch { return null; }
     }
@@ -363,8 +363,6 @@ public sealed partial class ClipItem : ObservableObject
         OnPropertyChanged(nameof(Subtitle));
         OnPropertyChanged(nameof(Details));
     }
-
-    private static T Frozen<T>(T f) where T : Freezable { f.Freeze(); return f; }
 
     [GeneratedRegex(@"\s+")] private static partial Regex Whitespace();
     [GeneratedRegex(@"\S+")] private static partial Regex WordRegex();

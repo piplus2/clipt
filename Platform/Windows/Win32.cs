@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace Clipt.Native;
+namespace Clipt.Platform.Windows;
 
 internal static class Win32
 {

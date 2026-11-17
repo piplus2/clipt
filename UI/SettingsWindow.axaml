@@ -1,0 +1,336 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:Clipt.UI"
+        xmlns:fi="using:FluentIcons.Avalonia"
+        x:Class="Clipt.UI.SettingsWindow"
+        Title="Clipt Settings" Width="600" Height="720" MinWidth="520" MinHeight="480"
+        WindowStartupLocation="CenterScreen"
+        TransparencyLevelHint="Mica, None">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource Fg.Primary}" />
+            <Setter Property="Margin" Value="4,26,0,10" />
+        </Style>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{DynamicResource Bg.Card}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Stroke.Divider}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+        <Style Selector="Grid.row">
+            <Setter Property="Margin" Value="16,12" />
+            <Setter Property="MinHeight" Value="36" />
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Foreground" Value="{DynamicResource Fg.Primary}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.desc">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource Fg.Tertiary}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,2,16,0" />
+        </Style>
+        <Style Selector="Border.divider">
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource Stroke.Divider}" />
+        </Style>
+    </Window.Styles>
+
+    <Border x:Name="Root" Background="{DynamicResource Bg.Fallback}">
+        <Grid RowDefinitions="*,Auto">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="28,8,28,24">
+
+                    <!-- ================= General ================= -->
+                    <TextBlock Classes="section" Text="General" Margin="4,8,0,10" />
+                    <Border Classes="card">
+                        <StackPanel>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Classes="label" Text="Shortcut" />
+                                    <TextBlock Classes="desc" Text="Opens Clipt from anywhere. Click the box and press a new combination." />
+                                </StackPanel>
+                                <TextBox x:Name="HotkeyBox" Grid.Column="1" Classes="field" Width="170"
+                                         IsReadOnly="True" TextAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                            <StackPanel x:Name="WinVRow">
+                                <Border Classes="divider" />
+                                <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Classes="label" Text="Take over Win + V" />
+                                        <TextBlock Classes="desc" Text="Open Clipt instead of the built-in Windows clipboard history." />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="WinVSwitch" Grid.Column="1" Classes="switch" />
+                                </Grid>
+                            </StackPanel>
+                            <Border Classes="divider" />
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Classes="label" Text="Paste directly" />
+                                    <TextBlock Classes="desc" Text="Enter pastes into the app you were using. Off: Enter only copies." />
+                                </StackPanel>
+                                <ToggleSwitch x:Name="PasteSwitch" Grid.Column="1" Classes="switch" />
+                            </Grid>
+                            <Border Classes="divider" />
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock x:Name="StartupLabel" Classes="label" Text="Start with Windows" />
+                                <ToggleSwitch x:Name="StartupSwitch" Grid.Column="1" Classes="switch" />
+                            </Grid>
+                            <Border Classes="divider" />
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Classes="label" Text="Appearance" />
+                                <Border Grid.Column="1" Classes="segments">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="ThemeSystem" Classes="segment" GroupName="Theme" Content="System" />
+                                        <RadioButton x:Name="ThemeDark" Classes="segment" GroupName="Theme" Content="Dark" />
+                                        <RadioButton x:Name="ThemeLight" Classes="segment" GroupName="Theme" Content="Light" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ================= History ================= -->
+                    <TextBlock Classes="section" Text="History &amp; privacy" />
+                    <Border Classes="card">
+                        <StackPanel>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Classes="label" Text="Keep clips for" />
+                                    <TextBlock Classes="desc" Text="Days. 0 keeps them forever. Pinned clips are always kept." />
+                                </StackPanel>
+                                <TextBox x:Name="RetentionBox" Grid.Column="1" Classes="field" Width="90"
+                                         TextAlignment="Right" VerticalAlignment="Center" />
+                            </Grid>
+                            <Border Classes="divider" />
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Classes="label" Text="Maximum clips" />
+                                <TextBox x:Name="MaxItemsBox" Grid.Column="1" Classes="field" Width="90"
+                                         TextAlignment="Right" VerticalAlignment="Center" />
+                            </Grid>
+                            <Border Classes="divider" />
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Classes="label" Text="Capture images" />
+                                <ToggleSwitch x:Name="ImagesSwitch" Grid.Column="1" Classes="switch" />
+                            </Grid>
+                            <Border Classes="divider" />
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Classes="label" Text="Search text inside images" />
+                                    <TextBlock x:Name="OcrDesc" Classes="desc" />
+                                </StackPanel>
+                                <ToggleSwitch x:Name="OcrSwitch" Grid.Column="1" Classes="switch" />
+                            </Grid>
+                            <Border Classes="divider" />
+                            <StackPanel Orientation="Horizontal" Margin="16,12">
+                                <Button Classes="btn" Content="Open data folder" Click="OpenData_Click" Margin="0,0,8,0" />
+                                <Button Classes="btn danger" Content="Clear history…" Click="Clear_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ================= Privacy ================= -->
+                    <TextBlock Classes="section" Text="Privacy &amp; security" />
+                    <Border Classes="card">
+                        <StackPanel>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Classes="label" Text="Protect passwords and secrets" />
+                                    <TextBlock Classes="desc" Text="Recognises passwords, API keys, private keys, card and bank numbers. They're hidden, never searchable or sent to AI, and removed from the clipboard 30 seconds after you paste them." />
+                                </StackPanel>
+                                <ToggleSwitch x:Name="DetectSwitch" Grid.Column="1" Classes="switch" IsCheckedChanged="Detect_Changed" />
+                            </Grid>
+                            <StackPanel x:Name="SensitivePanel">
+                                <Border Classes="divider" />
+                                <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                    <TextBlock Classes="label" Text="When a secret is copied" />
+                                    <Border Grid.Column="1" Classes="segments">
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton x:Name="SensitiveHide" Classes="segment" GroupName="Sensitive"
+                                                         Content="Keep briefly, hidden" IsCheckedChanged="Detect_Changed" />
+                                            <RadioButton x:Name="SensitiveSkip" Classes="segment" GroupName="Sensitive"
+                                                         Content="Never save" IsCheckedChanged="Detect_Changed" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                                <StackPanel x:Name="TtlPanel">
+                                    <Border Classes="divider" />
+                                    <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Classes="label" Text="Delete secrets after" />
+                                            <TextBlock Classes="desc" Text="Minutes since last use. Pin a secret (Ctrl+P) to keep it." />
+                                        </StackPanel>
+                                        <TextBox x:Name="TtlBox" Grid.Column="1" Classes="field" Width="90"
+                                                 TextAlignment="Right" VerticalAlignment="Center" />
+                                    </Grid>
+                                </StackPanel>
+                            </StackPanel>
+                            <Border Classes="divider" />
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Classes="label" Text="Skip private browsing windows" />
+                                    <TextBlock Classes="desc" Text="Edge InPrivate, Firefox, Brave and Opera private windows. (Chrome Incognito can't be detected.)" />
+                                </StackPanel>
+                                <ToggleSwitch x:Name="PrivateWindowsSwitch" Grid.Column="1" Classes="switch" />
+                            </Grid>
+                            <StackPanel x:Name="CaptureRow">
+                                <Border Classes="divider" />
+                                <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Classes="label" Text="Hide Clipt when sharing your screen" />
+                                        <TextBlock Classes="desc" Text="Clipt stays invisible in screen sharing (Teams, Zoom, Meet), recordings and screenshots." />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="CaptureSwitch" Grid.Column="1" Classes="switch" />
+                                </Grid>
+                            </StackPanel>
+                            <Border Classes="divider" />
+
+                            <!-- Excluded apps -->
+                            <StackPanel Margin="16,12,16,14">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Classes="label" Text="Never record from these apps" />
+                                        <TextBlock Classes="desc" Text="Tip: right-click any clip in Clipt and choose “Never record from…”." />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Classes="btn" Click="AddApp_Click" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <fi:FluentIcon Icon="Add" FontSize="13" Margin="0,0,8,0" Foreground="{DynamicResource Fg.Primary}" />
+                                            <TextBlock Text="Add app" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <ItemsControl x:Name="ExcludedList" Margin="0,10,0,0">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="ui:ExcludedRow">
+                                            <Border CornerRadius="15" Padding="10,0,2,0" Margin="0,0,6,6" Height="30"
+                                                    Background="{DynamicResource Bg.Control}" BorderThickness="1"
+                                                    BorderBrush="{DynamicResource Stroke.Divider}" ToolTip.Tip="{Binding Exe}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Panel Width="16" Height="16" VerticalAlignment="Center">
+                                                        <Image Source="{Binding Icon}" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                                        <fi:FluentIcon Classes="glyph" Icon="AppGeneric" FontSize="14" IsVisible="{Binding HasNoIcon}" />
+                                                    </Panel>
+                                                    <TextBlock Margin="8,0,2,0" VerticalAlignment="Center" FontSize="12.5"
+                                                               Foreground="{DynamicResource Fg.Primary}" Text="{Binding Name}" />
+                                                    <Button Classes="icon" Width="24" Height="24" VerticalAlignment="Center"
+                                                            ToolTip.Tip="Remove" Click="RemoveApp_Click" Tag="{Binding}">
+                                                        <fi:FluentIcon Icon="Dismiss" FontSize="11" Foreground="{Binding $parent[Button].Foreground}" />
+                                                    </Button>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                            <Border Classes="divider" />
+                            <TextBlock x:Name="SecurityText" Classes="desc" Margin="16,10,16,12" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ================= AI ================= -->
+                    <TextBlock Classes="section" Text="AI" />
+                    <Border Classes="card">
+                        <StackPanel>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Classes="label" Text="AI actions" />
+                                    <TextBlock Classes="desc" Text="Press Tab on a clip to summarize, rewrite, translate, explain, or ask anything about it. A clip is sent only when you run an action on it." />
+                                </StackPanel>
+                                <ToggleSwitch x:Name="AiSwitch" Grid.Column="1" Classes="switch" IsCheckedChanged="AiSwitch_Changed" />
+                            </Grid>
+
+                            <StackPanel x:Name="AiPanel">
+                                <Border Classes="divider" />
+                                <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                    <TextBlock Classes="label" Text="Provider" />
+                                    <Border Grid.Column="1" Classes="segments">
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton x:Name="ProviderClaude" Classes="segment" GroupName="Provider"
+                                                         Content="Claude" IsCheckedChanged="Provider_Changed" />
+                                            <RadioButton x:Name="ProviderOllama" Classes="segment" GroupName="Provider"
+                                                         Content="Ollama (local)" IsCheckedChanged="Provider_Changed" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <StackPanel x:Name="ClaudePanel">
+                                    <Border Classes="divider" />
+                                    <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Classes="label" Text="Anthropic API key" />
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Classes="desc" Text="Stored encrypted for your account. Get one at" Margin="0,2,4,0" />
+                                                <Button Classes="link" Content="console.anthropic.com" Click="ApiKeyLink_Click" Margin="0,2,0,0" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <TextBox x:Name="ApiKeyBox" Grid.Column="1" Classes="field" Width="220" PasswordChar="•"
+                                                 VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Border Classes="divider" />
+                                    <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Classes="label" Text="Model" />
+                                            <TextBlock Classes="desc" Text="e.g. claude-opus-5-5, claude-sonnet-5-5 or claude-haiku-5-5" />
+                                        </StackPanel>
+                                        <TextBox x:Name="ClaudeModelBox" Grid.Column="1" Classes="field" Width="220" VerticalAlignment="Center" />
+                                    </Grid>
+                                </StackPanel>
+
+                                <StackPanel x:Name="OllamaPanel">
+                                    <Border Classes="divider" />
+                                    <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Classes="label" Text="Endpoint" />
+                                            <TextBlock Classes="desc" Text="Runs entirely on your machine." />
+                                        </StackPanel>
+                                        <TextBox x:Name="OllamaEndpointBox" Grid.Column="1" Classes="field" Width="220" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Border Classes="divider" />
+                                    <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Classes="label" Text="Model" />
+                                            <TextBlock Classes="desc" Text="Use a vision model (e.g. llava, gemma3) for image actions." />
+                                        </StackPanel>
+                                        <TextBox x:Name="OllamaModelBox" Grid.Column="1" Classes="field" Width="220" VerticalAlignment="Center" />
+                                    </Grid>
+                                </StackPanel>
+
+                                <Border Classes="divider" />
+                                <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                    <TextBlock Classes="label" Text="Translate to" />
+                                    <TextBox x:Name="TranslateBox" Grid.Column="1" Classes="field" Width="220" VerticalAlignment="Center" />
+                                </Grid>
+                                <Border Classes="divider" />
+                                <StackPanel Orientation="Horizontal" Margin="16,12">
+                                    <Button x:Name="TestButton" Classes="btn" Content="Test connection" Click="Test_Click" />
+                                    <TextBlock x:Name="TestResult" Margin="12,0,0,0" FontSize="12" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource Fg.Secondary}" TextTrimming="CharacterEllipsis" MaxWidth="340" />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock x:Name="VersionText" Margin="4,20,0,0" FontSize="11.5" Foreground="{DynamicResource Fg.Tertiary}" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer -->
+            <Border Grid.Row="1" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource Stroke.Divider}" Padding="28,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Classes="btn" Content="Cancel" Click="Cancel_Click" Margin="0,0,8,0" MinWidth="90" />
+                    <Button Classes="btn accent" Content="Save" Click="Save_Click" MinWidth="90" IsDefault="True" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

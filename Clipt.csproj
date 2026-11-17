@@ -1,52 +1,69 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- One codebase, two builds:
+         net10.0                         Linux (X11)
+         net10.0-windows10.0.22621.0     Windows 10/11 (WinRT APIs for OCR without extra packages)
+       Shared UI (Avalonia), storage, search, crypto and AI; each OS implements Platform/IPlatform.cs. -->
   <PropertyGroup>
+    <TargetFrameworks>net10.0;net10.0-windows10.0.22621.0</TargetFrameworks>
+    <!-- Lets Linux/macOS machines build (not run) the Windows target too. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <OutputType>WinExe</OutputType>
-    <!-- Windows SDK TFM gives us WinRT APIs (OCR, accent colour) without extra packages. -->
-    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
-    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
-    <UseWPF>true</UseWPF>
-    <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Clipt</AssemblyName>
     <RootNamespace>Clipt</RootNamespace>
-    <Version>0.1.1</Version>
+    <Version>0.2.0</Version>
     <Product>Clipt</Product>
-    <Description>A Spotlight-style clipboard history for Windows.</Description>
+    <Description>A Spotlight-style clipboard history for Windows and Linux.</Description>
     <Copyright>Copyright (c) 2026 Paolo Inglese</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/piplus2/clipt</RepositoryUrl>
     <InvariantGlobalization>false</InvariantGlobalization>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <!-- Compile each method once, fully optimised. With tiered compilation the JIT keeps recompiling hot UI code
          (with dynamic PGO, twice) the first times the launcher is used: measured on a 2,000-clip history, opening
          the launcher cost ~1,000 ms CPU instead of ~250 ms and the first scroll 61% of a core instead of 17%.
          The price is ~190 ms more CPU once at startup; the launcher opens just as fast. -->
     <TieredCompilation>false</TieredCompilation>
-    <!-- WFO0003 targets WinForms-first apps; this is a WPF app that declares PerMonitorV2 in its manifest. -->
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$(TargetFramework.Contains('-windows'))">
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <!-- WinForms is only used for the tray icon (with balloon notifications) and the Win32 clipboard API. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- WFO0003 targets WinForms-first apps; Clipt declares PerMonitorV2 in its manifest. -->
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
   </PropertyGroup>
 
-  <!-- WinForms is only used for the tray icon; keep its namespaces out of implicit usings
-       so they don't collide with WPF types (Application, MessageBox, Clipboard...). -->
   <ItemGroup>
     <!-- The test project lives in tests/; keep its sources out of the app. -->
     <Compile Remove="tests\**" />
-    <Page Remove="tests\**" />
+    <AvaloniaXaml Remove="tests\**" />
     <None Remove="tests\**" />
     <InternalsVisibleTo Include="Clipt.Tests" />
   </ItemGroup>
 
-  <ItemGroup>
+  <!-- Each build only compiles its own platform layer. -->
+  <ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
+    <Compile Remove="Platform\Linux\**" />
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
+  </ItemGroup>
+  <ItemGroup Condition="!$(TargetFramework.Contains('-windows'))">
+    <Compile Remove="Platform\Windows\**" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Anthropic" Version="13.8.0" />
+    <PackageReference Include="Avalonia" Version="12.1.6" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.6" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.6" />
+    <PackageReference Include="FluentIcons.Avalonia" Version="2.1.345" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
     <!-- Override the transitive native SQLite build: 2.1.11 has a known high-severity advisory (GHSA-2m69-gcr7-jv3q). -->
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.14" />

@@ -81,14 +81,45 @@ public sealed class StorageSecurityTests : IDisposable
         Assert.NotEqual(Convert.ToHexString(SHA256.HashData("x"u8)), _vault.Fingerprint("x"));
     }
 
-    [Fact]
-    public void Dpapi_wrapped_key_file_does_not_contain_the_raw_key()
+    /// <summary>Stands in for DPAPI / the desktop keyring, so tests never touch the real OS key store.</summary>
+    private sealed class TestKeyProtector : Clipt.Platform.IKeyProtector
     {
-        var v1 = CryptoVault.Open(_dir);
+        private readonly byte[] _key = RandomNumberGenerator.GetBytes(32);
+
+        public byte[] Protect(byte[] secret, byte[] entropy)
+        {
+            var blob = new byte[12 + 16 + secret.Length];
+            RandomNumberGenerator.Fill(blob.AsSpan(0, 12));
+            using var aes = new AesGcm(_key, 16);
+            aes.Encrypt(blob.AsSpan(0, 12), secret, blob.AsSpan(28), blob.AsSpan(12, 16), entropy);
+            return blob;
+        }
+
+        public byte[] Unprotect(byte[] blob, byte[] entropy)
+        {
+            var plain = new byte[blob.Length - 28];
+            using var aes = new AesGcm(_key, 16);
+            aes.Decrypt(blob.AsSpan(0, 12), blob.AsSpan(28), blob.AsSpan(12, 16), plain, entropy);
+            return plain;
+        }
+    }
+
+    [Fact]
+    public void Wrapped_key_file_does_not_contain_the_raw_key()
+    {
+        var protector = new TestKeyProtector();
+        var v1 = CryptoVault.Open(_dir, protector);
         var keyFile = File.ReadAllBytes(Path.Combine(_dir, CryptoVault.KeyFileName));
-        Assert.True(keyFile.Length > 32);            // DPAPI blob, not a bare 32-byte key
-        var v2 = CryptoVault.Open(_dir);             // same user can reopen it
+        Assert.True(keyFile.Length > 32);            // wrapped blob, not a bare 32-byte key
+        var v2 = CryptoVault.Open(_dir, protector);  // same user can reopen it
         Assert.Equal(v1.Fingerprint("a"), v2.Fingerprint("a"));
+    }
+
+    [Fact]
+    public void Key_wrapped_for_someone_else_is_unreadable()
+    {
+        CryptoVault.Open(_dir, new TestKeyProtector());
+        Assert.ThrowsAny<CryptographicException>(() => CryptoVault.Open(_dir, new TestKeyProtector()));
     }
 
     // ---------- store ----------
@@ -268,11 +299,24 @@ public sealed class StorageSecurityTests : IDisposable
     }
 
     [Fact]
+    public void Exclusions_match_Windows_and_Unix_paths_on_any_OS()
+    {
+        var s = new AppSettings { ExcludedApps = [new("KeePass.exe", "KeePass"), new("keepassxc", "KeePassXC")] };
+        Assert.True(s.IsExcluded(@"C:\Program Files\KeePass\KeePass.exe"));
+        Assert.True(s.IsExcluded("/usr/bin/keepassxc"));
+        Assert.True(s.IsExcluded("/app/bin/KeePassXC"));
+        Assert.False(s.IsExcluded("/usr/lib/firefox/firefox"));
+        Assert.False(s.IsExcluded("/usr/bin/keepassxc-cli"));
+    }
+
+    [Fact]
     public void Fresh_settings_exclude_password_managers()
     {
         var s = new AppSettings();
         s.Normalize();
-        Assert.True(s.IsExcluded(@"C:\Users\me\AppData\Local\1Password\app\8\1Password.exe"));
+        Assert.True(OperatingSystem.IsWindows()
+            ? s.IsExcluded(@"C:\Users\me\AppData\Local\1Password\app\8\1Password.exe")
+            : s.IsExcluded("/usr/bin/keepassxc"));
         Assert.True(s.DetectSensitive);
         Assert.True(s.HideFromScreenCapture);
     }

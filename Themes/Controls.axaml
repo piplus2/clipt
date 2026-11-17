@@ -1,0 +1,297 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:fi="using:FluentIcons.Avalonia">
+
+    <Style Selector="Window">
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+    </Style>
+
+    <!-- Icons (Fluent System Icons). -->
+    <Style Selector="fi|FluentIcon.glyph">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Secondary}" />
+    </Style>
+
+    <!-- Borderless, chrome-less text box for the big search field. -->
+    <Style Selector="TextBox.bare">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Primary}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Fg.Primary}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Accent.Soft}" />
+        <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Fg.Primary}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+    <Style Selector="TextBox.bare /template/ Border#PART_BorderElement, TextBox.bare:pointerover /template/ Border#PART_BorderElement, TextBox.bare:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox.bare:pointerover, TextBox.bare:focus">
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Primary}" />
+    </Style>
+
+    <!-- Read-only, selectable text used in previews. -->
+    <Style Selector="TextBox.preview">
+        <Setter Property="IsReadOnly" Value="True" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Primary}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Accent.Soft}" />
+        <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Fg.Primary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="AcceptsReturn" Value="True" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+    </Style>
+    <Style Selector="TextBox.preview /template/ Border#PART_BorderElement, TextBox.preview:pointerover /template/ Border#PART_BorderElement, TextBox.preview:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox.preview:pointerover, TextBox.preview:focus">
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Primary}" />
+    </Style>
+    <!-- Short prose is shown large, Spotlight-style; code in a monospace font without wrapping. -->
+    <Style Selector="TextBox.preview.short">
+        <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+        <Setter Property="FontSize" Value="22" />
+    </Style>
+    <Style Selector="TextBox.preview.code">
+        <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+    </Style>
+
+    <!-- Rounded text box for settings. -->
+    <Style Selector="TextBox.field">
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Primary}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Fg.Primary}" />
+        <Setter Property="Background" Value="{DynamicResource Bg.Control}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Stroke.Control}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Accent.Soft}" />
+        <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Fg.Primary}" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+    <Style Selector="TextBox.field:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource Bg.ControlHover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Stroke.Control}" />
+    </Style>
+    <Style Selector="TextBox.field:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource Bg.Control}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="TextBox.field:pointerover, TextBox.field:focus">
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Primary}" />
+    </Style>
+
+    <!-- Subtle button. -->
+    <Style Selector="Button.btn">
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Primary}" />
+        <Setter Property="Background" Value="{DynamicResource Bg.Control}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Stroke.Control}" />
+        <Setter Property="Padding" Value="14,6" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="B" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.btn:pointerover /template/ Border#B">
+        <Setter Property="Background" Value="{DynamicResource Bg.ControlHover}" />
+    </Style>
+    <Style Selector="Button.btn:pressed /template/ Border#B">
+        <Setter Property="Opacity" Value="0.75" />
+    </Style>
+    <Style Selector="Button.btn:disabled /template/ Border#B">
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+
+    <Style Selector="Button.btn.accent">
+        <Setter Property="Background" Value="{DynamicResource Accent}" />
+        <Setter Property="Foreground" Value="{DynamicResource Accent.Fg}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.btn.accent:pointerover /template/ Border#B">
+        <Setter Property="Background" Value="{DynamicResource Accent}" />
+        <Setter Property="Opacity" Value="0.9" />
+    </Style>
+
+    <Style Selector="Button.btn.danger">
+        <Setter Property="Background" Value="{DynamicResource Bg.Danger}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Danger}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.btn.danger:pointerover /template/ Border#B">
+        <Setter Property="Background" Value="{DynamicResource Bg.Danger}" />
+        <Setter Property="Opacity" Value="0.85" />
+    </Style>
+
+    <!-- Text link. -->
+    <Style Selector="Button.link">
+        <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Content="{TemplateBinding Content}" Background="Transparent" />
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Icon-only button. -->
+    <Style Selector="Button.icon">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Tertiary}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="B" Background="Transparent" CornerRadius="6">
+                    <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.icon:pointerover">
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Primary}" />
+    </Style>
+    <Style Selector="Button.icon:pointerover /template/ Border#B">
+        <Setter Property="Background" Value="{DynamicResource Bg.Hover}" />
+    </Style>
+
+    <!-- Filter chips (radio buttons). -->
+    <Style Selector="RadioButton.chip">
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Secondary}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="B" Background="Transparent" CornerRadius="11" Padding="10,3">
+                    <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="RadioButton.chip:pointerover /template/ Border#B">
+        <Setter Property="Background" Value="{DynamicResource Bg.Hover}" />
+    </Style>
+    <Style Selector="RadioButton.chip:checked /template/ Border#B">
+        <Setter Property="Background" Value="{DynamicResource Accent.Soft}" />
+    </Style>
+    <Style Selector="RadioButton.chip:checked">
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Primary}" />
+    </Style>
+
+    <!-- Segmented control option (settings). -->
+    <Style Selector="Border.segments">
+        <Setter Property="Background" Value="{DynamicResource Bg.Control}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Stroke.Control}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="7" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="RadioButton.segment">
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Secondary}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="B" Background="Transparent" CornerRadius="5" Padding="12,4" Margin="2">
+                    <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="RadioButton.segment:pointerover /template/ Border#B">
+        <Setter Property="Background" Value="{DynamicResource Bg.Hover}" />
+    </Style>
+    <Style Selector="RadioButton.segment:checked /template/ Border#B">
+        <Setter Property="Background" Value="{DynamicResource Bg.ControlHover}" />
+    </Style>
+    <Style Selector="RadioButton.segment:checked">
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Primary}" />
+    </Style>
+
+    <!-- Toggle switch without the "On"/"Off" labels. -->
+    <Style Selector="ToggleSwitch.switch">
+        <Setter Property="OnContent" Value="" />
+        <Setter Property="OffContent" Value="" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- List rows: rounded highlight with an accent pill on the selected row. -->
+    <Style Selector="ListBox.rows">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Padding" Value="0,6" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+    </Style>
+    <Style Selector="ListBox.rows ListBoxItem">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="B" Background="Transparent" CornerRadius="8" Margin="8,1,6,1" Padding="9,5">
+                    <Grid>
+                        <Border Name="Pill" Width="3" Height="18" CornerRadius="1.5" Margin="-9,0,0,0"
+                                HorizontalAlignment="Left" Background="{DynamicResource Accent}" IsVisible="False" />
+                        <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.rows ListBoxItem:pointerover /template/ Border#B">
+        <Setter Property="Background" Value="{DynamicResource Bg.Hover}" />
+    </Style>
+    <Style Selector="ListBox.rows ListBoxItem:selected /template/ Border#B">
+        <Setter Property="Background" Value="{DynamicResource Bg.Selected}" />
+    </Style>
+    <Style Selector="ListBox.rows ListBoxItem:selected /template/ Border#Pill">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+
+    <!-- Keyboard hint "keycap". -->
+    <Style Selector="Border.kbd">
+        <Setter Property="Background" Value="{DynamicResource Bg.Kbd}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="5,1" />
+        <Setter Property="Margin" Value="0,0,5,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.kbd > TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource Fg.Secondary}" />
+    </Style>
+</Styles>

@@ -28,7 +28,8 @@ Clipt also doesn't protect against an administrator who installs software on the
 | Item | Detail |
 |---|---|
 | Master key | 256 random bits from the OS CSPRNG, generated on first run |
-| Key storage | `vault.key`, the master key wrapped with **DPAPI** (`DataProtectionScope.CurrentUser`) plus app-specific entropy. Only the same Windows account on the same machine can unwrap it. |
+| Key storage (Windows) | `vault.key`, the master key wrapped with **DPAPI** (`DataProtectionScope.CurrentUser`) plus app-specific entropy. Only the same Windows account on the same machine can unwrap it. |
+| Key storage (Linux) | `vault.key`, the master key wrapped with AES-256-GCM under a random 256-bit key kept in the desktop keyring (**Secret Service**: GNOME Keyring, KWallet, KeePassXC), which is unlocked at login. Without a Secret Service the wrapping key is kept in `wrap.key` (mode 0600, data folder 0700) and Settings says so. Each wrapped blob records which of the two was used, so an unreachable keyring is reported as an error rather than treated as a lost key. |
 | Derived keys | Two independent subkeys via **HKDF-SHA256**: one for encryption (`clipt/aes-gcm`) and one for fingerprints (`clipt/hmac`). The master key is zeroed after derivation. |
 
 **Data encryption**
@@ -52,8 +53,9 @@ because an FTS index would be a plaintext copy of everything.
 **Deletion:** SQLite `secure_delete` is on, so deleted rows are overwritten in place. The WAL is truncated after
 deletions. Image files are deleted; they were only ever written encrypted.
 
-**Key loss:** if the key can't be unwrapped (for example after an administrator resets the password), Clipt moves the
-unreadable history aside and starts a new one. It never falls back to a weaker key.
+**Key loss:** if the key can't be unwrapped (for example after an administrator resets the password, or the keyring
+entry was deleted), Clipt moves the unreadable history aside and starts a new one. It never falls back to a weaker key.
+If the Linux keyring simply isn't reachable yet, Clipt exits without touching the history.
 
 **Implementation:** `Services/CryptoVault.cs`, `Services/ClipStore.cs`.
 
@@ -90,8 +92,9 @@ UUIDs, phone numbers and versions. Users can correct it either way with **Ctrl+H
 
 These copies are never recorded:
 
-- Copies carrying the opt-out formats password managers set: `ExcludeClipboardContentFromMonitorProcessing`,
-  `Clipboard Viewer Ignore`, or `CanIncludeInClipboardHistory = 0`.
+- Copies carrying the opt-out formats password managers set: on Windows `ExcludeClipboardContentFromMonitorProcessing`,
+  `Clipboard Viewer Ignore`, or `CanIncludeInClipboardHistory = 0`; on Linux `x-kde-passwordManagerHint = secret`
+  (KeePassXC and others).
 - Copies whose source process executable is on the user's excluded-apps list (password managers by default).
 - Copies made while the foreground window is a private browsing window (title markers used by Edge, Firefox, Brave
   and Opera). Chrome Incognito has no title marker and can't be detected this way.
@@ -100,21 +103,23 @@ These copies are never recorded:
 
 ## Other safeguards
 
-- **Screen capture:** the launcher sets `WDA_EXCLUDEFROMCAPTURE` (configurable).
-- **No execution of copied content:** file clips are revealed in Explorer, never launched. Links are opened only for
+- **Screen capture (Windows):** the launcher sets `WDA_EXCLUDEFROMCAPTURE` (configurable). X11 has no equivalent.
+- **No execution of copied content:** file clips are revealed in the file manager, never launched. Helper programs
+  on Linux (`xdg-open`, `dbus-send`, `tesseract`, `notify-send`) get argument lists, never a shell command line. Links are opened only for
   `http`, `https`, `mailto` and `ftp`. Images are exported via *Save as*, never written to a temp file.
 - **AI is opt-in:**
   - Content is sent only when the user runs an action on a specific clip.
   - Claude is reached over HTTPS via the official Anthropic SDK.
   - Ollama must be on the loopback interface or use `https`.
-- **Secrets at rest in settings:** the Anthropic API key is DPAPI-protected in `settings.json`.
-- **Least privilege:** Clipt runs unelevated. Autostart uses the per-user `Run` key.
+- **Secrets at rest in settings:** the Anthropic API key in `settings.json` is wrapped like the vault key (DPAPI / keyring).
+- **Least privilege:** Clipt runs unelevated. Autostart uses the per-user `Run` key on Windows and
+  `~/.config/autostart` on Linux. The single-instance pipe only accepts connections from the current user.
 - **Supply chain:** dependency versions are pinned. The transitive native SQLite build is overridden to a version
   without the known advisory (GHSA-2m69-gcr7-jv3q).
 
 ## Verification
 
-`tests/Clipt.Tests` contains 47 tests that back the claims above, including:
+`tests/Clipt.Tests` contains 72 tests that back the claims above, including:
 
 - **Detection:** secrets in every category are detected, and a set of ordinary strings is **not** flagged (identifiers, hashes,
   UUIDs, paths, URLs, e-mails, versions, phone numbers, Luhn-invalid numbers).
@@ -122,7 +127,8 @@ These copies are never recorded:
   - every encryption uses a new nonce, and tampering and wrong-column decryption are rejected
   - another key can't decrypt
   - fingerprints are keyed
-  - the key file is DPAPI-wrapped
+  - the key file is wrapped (with a stand-in protector, so tests never touch the real DPAPI or keyring), and a key
+    wrapped for someone else is rejected
 - **No plaintext on disk:** after storing text, HTML, RTF, an image and OCR text, every byte of every file in the data
   folder is scanned for the original strings (UTF-8 and UTF-16), with a positive control proving the scan catches leaks.
 - **Search and retention:** sensitive clips aren't searchable by content; they expire unless pinned; deleting a clip removes its image file and thumbnail.

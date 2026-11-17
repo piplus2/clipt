@@ -1,6 +1,7 @@
 # Clipt user guide
 
 - [Getting started](#getting-started)
+- [On Linux](#on-linux)
 - [The launcher](#the-launcher)
 - [Searching](#searching)
 - [Pasting](#pasting)
@@ -17,16 +18,41 @@
 
 ## Getting started
 
-1. Download `Clipt-<version>-win-x64.exe` from the [latest release](https://github.com/piplus2/clipt/releases/latest)
-   and run it (see the [README](../README.md#install) for details, or to build from source).
+1. Download `Clipt-<version>-win-x64.exe` (Windows) or `Clipt-<version>-linux-x64` (Linux) from the
+   [latest release](https://github.com/piplus2/clipt/releases/latest) and run it (see the [README](../README.md#install) for details, or to build from source).
 2. A tray icon appears and the launcher opens. From now on, everything you copy is recorded.
 3. Press **Alt+Shift+V** anywhere to open Clipt, type to search, and press **Enter** to paste.
 
 By default Clipt starts with Windows. Turn this off in **Settings → General → Start with Windows**.
+This guide describes Windows; [On Linux](#on-linux) lists what's different there.
 
 > **Shortcut already taken?** If another app owns Alt+Shift+V, Clipt automatically uses the first free
 > one of Ctrl+Shift+Space, Win+Alt+V or Alt+Shift+Space and tells you which. You can set any shortcut in Settings.
 > You can also make **Win+V** open Clipt instead of the built-in Windows clipboard history.
+
+## On Linux
+
+Clipt works the same way on Linux X11 desktops (GNOME, KDE Plasma, Xfce, Cinnamon, MATE…). The differences:
+
+| | Linux |
+|---|---|
+| Shortcut | **Alt+Shift+V** by default. The logo key is called **Super** (e.g. Super+Alt+V); *Take over Win+V* doesn't exist |
+| Start at login | *Settings → General → Start at login* writes `~/.config/autostart/clipt.desktop` |
+| Pasting into terminals | Clipt sends **Ctrl+Shift+V** to known terminals (GNOME Terminal, Konsole, kitty, Alacritty, …) and Ctrl+V elsewhere |
+| Text in images | Needs Tesseract: `sudo apt install tesseract-ocr` (add e.g. `tesseract-ocr-deu` for more languages). Uses English plus your own language if installed |
+| Password managers | Copies marked with KDE's `x-kde-passwordManagerHint` (KeePassXC and others) are never recorded, and secrets Clipt pastes carry the same mark |
+| Hiding from screen sharing | Not available: X11 has no way to do it |
+| Encryption key | In your desktop keyring (GNOME Keyring, KWallet, KeePassXC with Secret Service), unlocked at login. With no keyring, a file only your account can read (Settings says which) |
+| Data folder | `~/.local/share/clipt` (or `$XDG_DATA_HOME/clipt`) |
+| Tray icon | Standard StatusNotifierItem. On GNOME it needs the AppIndicator extension (built into Ubuntu) |
+
+**Wayland.** Wayland doesn't allow apps to watch the clipboard, register global shortcuts or type into other windows.
+Under XWayland, the shortcut and paste-back reach X11 apps only. For the full experience choose an X11 session at
+login ("GNOME on Xorg", "Plasma (X11)").
+
+**Uninstalling on Linux:** quit Clipt from the tray, turn off *Start at login* (or delete
+`~/.config/autostart/clipt.desktop`), delete the executable and `~/.local/share/clipt`, and remove
+"Clipt clipboard history key" from your keyring (e.g. with *Passwords and Keys*).
 
 ## The launcher
 

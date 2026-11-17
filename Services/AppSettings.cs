@@ -3,11 +3,12 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Clipt.Platform;
 
 namespace Clipt.Services;
 
 /// <summary>An app whose clipboard activity is never recorded.</summary>
-/// <param name="Exe">Executable file name, e.g. "chrome.exe" (what matching uses).</param>
+/// <param name="Exe">Executable file name, e.g. "chrome.exe" or "firefox" (what matching uses).</param>
 /// <param name="Name">Friendly name shown to the user, e.g. "Google Chrome".</param>
 /// <param name="Path">Optional full path, used only to show the app's icon.</param>
 public sealed record ExcludedApp(string Exe, string Name, string? Path = null);
@@ -15,11 +16,12 @@ public sealed record ExcludedApp(string Exe, string Name, string? Path = null);
 public sealed class AppSettings
 {
     // General
-    public const string DefaultHotkey = "Alt+Shift+V";
-    public static readonly string[] FallbackHotkeys = ["Ctrl+Shift+Space", "Win+Alt+V", "Alt+Shift+Space"];
+    public const string DefaultHotkey = PlatformDefaults.DefaultHotkey;
+    public static string[] FallbackHotkeys => PlatformDefaults.FallbackHotkeys;
 
     public string Hotkey { get; set; } = DefaultHotkey;
     public bool UseWinV { get; set; }
+    /// <summary>Start at login (the name predates Linux support; kept so existing settings files still load).</summary>
     public bool StartWithWindows { get; set; } = true;
     public bool PasteDirectly { get; set; } = true;
     public string Theme { get; set; } = "System"; // System | Dark | Light
@@ -45,22 +47,14 @@ public sealed class AppSettings
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<string>? IgnoredApps { get; set; }
 
-    public static List<ExcludedApp> DefaultExcludedApps() =>
-    [
-        new("KeePass.exe", "KeePass"),
-        new("KeePassXC.exe", "KeePassXC"),
-        new("1Password.exe", "1Password"),
-        new("Bitwarden.exe", "Bitwarden"),
-        new("Dashlane.exe", "Dashlane"),
-        new("LastPass.exe", "LastPass"),
-        new("Enpass.exe", "Enpass"),
-        new("RoboForm.exe", "RoboForm"),
-        new("ProtonPass.exe", "Proton Pass"),
-    ];
+    public static List<ExcludedApp> DefaultExcludedApps() => PlatformDefaults.DefaultExcludedApps();
 
     public bool IsExcluded(string? exePath) =>
         exePath is not null && ExcludedApps is not null &&
-        ExcludedApps.Any(a => string.Equals(a.Exe, Path.GetFileName(exePath), StringComparison.OrdinalIgnoreCase));
+        ExcludedApps.Any(a => string.Equals(a.Exe, FileName(exePath), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>File name of a Windows or Unix path, whatever OS Clipt runs on.</summary>
+    internal static string FileName(string path) => path[(path.LastIndexOfAny(['/', '\\']) + 1)..];
 
     // AI (opt-in)
     public bool AiEnabled { get; set; }
@@ -81,20 +75,24 @@ public sealed class AppSettings
             if (string.IsNullOrEmpty(AnthropicKeyProtected)) return null;
             try
             {
-                var bytes = ProtectedData.Unprotect(Convert.FromBase64String(AnthropicKeyProtected), Entropy, DataProtectionScope.CurrentUser);
+                if (Protector is null) return null;
+                var bytes = Protector.Unprotect(Convert.FromBase64String(AnthropicKeyProtected), Entropy);
                 return Encoding.UTF8.GetString(bytes);
             }
             catch { return null; }
         }
         set
         {
-            AnthropicKeyProtected = string.IsNullOrWhiteSpace(value)
+            AnthropicKeyProtected = string.IsNullOrWhiteSpace(value) || Protector is null
                 ? null
-                : Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(value.Trim()), Entropy, DataProtectionScope.CurrentUser));
+                : Convert.ToBase64String(Protector.Protect(Encoding.UTF8.GetBytes(value.Trim()), Entropy));
         }
     }
 
     private static readonly byte[] Entropy = "Clipt.v1"u8.ToArray();
+
+    /// <summary>Wraps the API key for this user account (DPAPI / desktop keyring). Set once at startup.</summary>
+    public static IKeyProtector? Protector { get; set; }
 
     // ---------- persistence ----------
 
@@ -103,7 +101,10 @@ public sealed class AppSettings
 
     public static string DataDir { get; } = IsPortable
         ? Environment.GetEnvironmentVariable("CLIPT_DATA_DIR")!
-        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Clipt");
+        : OperatingSystem.IsWindows()
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Clipt")
+            // ~/.local/share/clipt (XDG_DATA_HOME)
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "clipt");
 
     private static string FilePath => Path.Combine(DataDir, "settings.json");
 
@@ -139,10 +140,17 @@ public sealed class AppSettings
 
     public void Save()
     {
-        Directory.CreateDirectory(DataDir);
+        CreateDataDir();
         var tmp = FilePath + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(this, Json));
         File.Move(tmp, FilePath, overwrite: true);
+    }
+
+    /// <summary>Creates the data folder; on Linux only the user can enter it (0700).</summary>
+    public static void CreateDataDir()
+    {
+        if (OperatingSystem.IsWindows()) Directory.CreateDirectory(DataDir);
+        else Directory.CreateDirectory(DataDir, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
     }
 
     public AppSettings Clone() => JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(this, Json), Json)!;
