@@ -207,11 +207,7 @@ public partial class SettingsWindow : Window
 
     private void OpenData_Click(object? sender, RoutedEventArgs e) => _app.Platform.Open(AppSettings.DataDir);
 
-    private async void Clear_Click(object? sender, RoutedEventArgs e)
-    {
-        bool ok = await ConfirmDialog.ShowAsync(this, "Clear history", "Delete your entire clipboard history? Pinned clips are kept.", "Delete");
-        if (ok) _app.Store.Clear(keepPinned: true);
-    }
+    private async void Clear_Click(object? sender, RoutedEventArgs e) => await _app.ClearHistoryAsync(this);
 
     private void ApiKeyLink_Click(object? sender, RoutedEventArgs e) =>
         _app.Platform.Open("https://console.anthropic.com/settings/keys");

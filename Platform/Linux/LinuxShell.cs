@@ -122,6 +122,8 @@ internal sealed class LinuxTray : ITray
         _pause.Click += (_, _) => app.TogglePause();
         var settings = new NativeMenuItem("Settings…");
         settings.Click += (_, _) => app.OpenSettings();
+        var clear = new NativeMenuItem("Clear history…");
+        clear.Click += (_, _) => _ = app.ClearHistoryAsync();
         var quit = new NativeMenuItem("Quit Clipt");
         quit.Click += (_, _) => app.Quit();
 
@@ -130,6 +132,7 @@ internal sealed class LinuxTray : ITray
         menu.Items.Add(_pause);
         menu.Items.Add(new NativeMenuItemSeparator());
         menu.Items.Add(settings);
+        menu.Items.Add(clear);
         menu.Items.Add(new NativeMenuItemSeparator());
         menu.Items.Add(quit);
 

@@ -221,6 +221,25 @@ public partial class App : Application
         return name;
     }
 
+    private bool _confirmingClear;
+
+    /// <summary>Asks, then deletes the whole history except pinned clips (Settings button and tray menu).</summary>
+    public async Task ClearHistoryAsync(Avalonia.Controls.Window? owner = null)
+    {
+        if (_confirmingClear) return;
+        _confirmingClear = true;
+        try
+        {
+            _launcher?.HideLauncher();
+            bool ok = await ConfirmDialog.ShowAsync(owner, "Clear history",
+                "Delete your entire clipboard history? Pinned clips are kept.", "Delete");
+            if (!ok) return;
+            Store.Clear(keepPinned: true);
+            if (owner is null) _tray?.Notify("History cleared", "Your clipboard history was deleted. Pinned clips were kept.");
+        }
+        finally { _confirmingClear = false; }
+    }
+
     public void TogglePause()
     {
         Monitor.Paused = !Monitor.Paused;

@@ -18,6 +18,7 @@ internal sealed class WindowsTray : ITray
         menu.Items.Add(_pause);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Settings…", null, (_, _) => app.OpenSettings());
+        menu.Items.Add("Clear history…", null, (_, _) => _ = app.ClearHistoryAsync());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Quit Clipt", null, (_, _) => app.Quit());
 
