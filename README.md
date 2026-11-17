@@ -68,13 +68,24 @@ file only your account can read.
 
 Requires the .NET 10 SDK.
 
+**Linux:** see [Building on Linux](docs/development.md#building-on-linux) for the full steps (dependencies,
+SDK, build, install). In short:
+
 ```sh
 git clone https://github.com/piplus2/clipt.git
 cd clipt
-# Windows
-dotnet publish Clipt.csproj -c Release -f net10.0-windows10.0.22621.0 -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
-# Linux
+git checkout linux-port
 dotnet publish Clipt.csproj -c Release -f net10.0 -r linux-x64 --self-contained true -p:PublishSingleFile=true -o publish
+./publish/Clipt
+```
+
+**Windows:**
+
+```powershell
+git clone https://github.com/piplus2/clipt.git
+cd clipt
+dotnet publish Clipt.csproj -c Release -f net10.0-windows10.0.22621.0 -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
+.\publish\Clipt.exe
 ```
 
 ## Everyday use

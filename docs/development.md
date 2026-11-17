@@ -53,6 +53,94 @@ The framework-dependent Windows build needs the
 [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
 Use `--self-contained true` for a build that doesn't need the runtime installed. It's considerably larger.
 
+## Building on Linux
+
+These steps build Clipt from source on Linux and install it for your user. They were checked on Ubuntu 24.04;
+other distributions only differ in package names.
+
+### 1. Install the system libraries
+
+Clipt needs X11 (with the XFixes and XTest extensions), fontconfig and ICU. These are present on almost every
+desktop install. libXRes (accurate source-app names) and libsecret (keyring) are optional but recommended.
+
+```sh
+# Debian / Ubuntu
+sudo apt install libx11-6 libxfixes3 libxtst6 libxres1 libsecret-1-0 libfontconfig1 libicu-dev
+# Fedora
+sudo dnf install libX11 libXfixes libXtst libXres libsecret fontconfig libicu
+# Arch
+sudo pacman -S libx11 libxfixes libxtst libxres libsecret fontconfig icu
+```
+
+Optional, for searching text inside images: `sudo apt install tesseract-ocr` (Fedora: `tesseract`, Arch:
+`tesseract tesseract-data-eng`).
+
+### 2. Install the .NET 10 SDK
+
+Use your distribution's `dotnet-sdk-10.0` package if it has one, or Microsoft's install script, which needs no
+root and installs into `~/.dotnet`:
+
+```sh
+curl -sSL https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh
+bash dotnet-install.sh --channel 10.0
+export DOTNET_ROOT="$HOME/.dotnet" PATH="$HOME/.dotnet:$PATH"   # add this line to ~/.bashrc too
+dotnet --version                                                # should print 10.0.x
+```
+
+### 3. Get the source
+
+```sh
+git clone https://github.com/piplus2/clipt.git
+cd clipt
+git checkout linux-port      # Linux support isn't on main yet
+```
+
+### 4. Build, test and run
+
+`-f net10.0` selects the Linux build. Without it `dotnet` also builds the Windows target, which works but takes
+longer and downloads the Windows SDK packs.
+
+```sh
+dotnet build Clipt.csproj -f net10.0
+dotnet test tests/Clipt.Tests
+dotnet run -f net10.0
+```
+
+To try it without touching your real history (and without creating an autostart entry), see
+[Run an isolated instance](#run-an-isolated-instance).
+
+### 5. Publish a single executable
+
+```sh
+dotnet publish Clipt.csproj -c Release -f net10.0 -r linux-x64 --self-contained true \
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+```
+
+This produces `publish/Clipt`, a single self-contained file (~115 MB) that runs without .NET installed.
+Use `-r linux-arm64` for 64-bit ARM.
+
+### 6. Install it for your user
+
+```sh
+install -Dm755 publish/Clipt ~/.local/bin/clipt
+mkdir -p ~/.local/share/applications
+cat > ~/.local/share/applications/clipt.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Clipt
+Comment=Clipboard history
+Exec=clipt
+Terminal=false
+Categories=Utility;
+EOF
+clipt &
+```
+
+Clipt now appears in your app menu. On first run it turns on *Start at login* (Settings → General). Press
+**Alt+Shift+V** to open it. To update, publish again and repeat the `install` line after quitting Clipt from the tray.
+
+To uninstall, see [On Linux](user-guide.md#on-linux) in the user guide.
+
 ## Project layout
 
 ```
