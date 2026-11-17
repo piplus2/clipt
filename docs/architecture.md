@@ -104,6 +104,12 @@ At start-up, every row except HTML/RTF is decrypted into a `ClipItem` cache plus
 HTML/RTF are loaded on demand when pasting. Search filters the cache: AND of terms (substring match), `app:` filters, then
 kind/pinned filters, ordered by last use.
 
+Retention (`ClipStore.Prune`) runs at start-up, after settings change and every 50 captures: max age, max count,
+then the image budget (`PruneImages`), which deletes the least recently used unpinned image clips until image files plus
+thumbnails fit. The most recently used image is never removed. The budget is also checked after every image capture.
+`GetStorageUsage` reports encrypted bytes per clip kind (column blob lengths plus image files) and the rest of the
+database files as overhead, for the Storage card in Settings.
+
 A v0.1 `history.db` (plaintext + FTS5) is migrated on first start and then deleted with its PNG files.
 
 ## Launcher state machine

@@ -224,6 +224,70 @@ public sealed class StorageSecurityTests : IDisposable
         Assert.False(File.Exists(stored.ImagePath));
     }
 
+    private static ClipItem StoredImage(ClipStore store, string hash, int bytes)
+    {
+        var img = new ClipItem { Kind = ClipKind.Image, ImageWidth = 1, ImageHeight = 1, Hash = hash };
+        img.ImagePath = store.WriteImage(new byte[bytes], img.Hash);
+        var stored = store.Upsert(img);
+        Thread.Sleep(5); // distinct last_used_at, so "least recently used" is well defined
+        return stored;
+    }
+
+    [Fact]
+    public void Image_budget_removes_least_recently_used_unpinned_images()
+    {
+        var store = new ClipStore(_dir, _vault);
+        var oldest = StoredImage(store, "img:1", 100_000);
+        var pinned = StoredImage(store, "img:2", 100_000);
+        var middle = StoredImage(store, "img:3", 100_000);
+        var newest = StoredImage(store, "img:4", 100_000);
+        store.SetPinned(pinned.Id, true);
+        store.Upsert(Text("text is not affected"));
+
+        int removed = store.PruneImages(250_000);
+
+        Assert.Equal(2, removed); // oldest then middle; the pinned one is skipped
+        Assert.False(File.Exists(oldest.ImagePath));
+        Assert.False(File.Exists(middle.ImagePath));
+        Assert.True(File.Exists(pinned.ImagePath));
+        Assert.True(File.Exists(newest.ImagePath));
+        Assert.Equal(3, store.Count());
+    }
+
+    [Fact]
+    public void Image_budget_keeps_the_latest_image_even_if_it_alone_is_too_big()
+    {
+        var store = new ClipStore(_dir, _vault);
+        var older = StoredImage(store, "img:a", 10_000);
+        var big = StoredImage(store, "img:b", 500_000);
+
+        Assert.Equal(1, store.PruneImages(100_000));
+        Assert.False(File.Exists(older.ImagePath));
+        Assert.True(File.Exists(big.ImagePath));
+        Assert.Equal(0, store.PruneImages(0)); // 0 = no limit
+    }
+
+    [Fact]
+    public void Storage_usage_is_reported_by_kind()
+    {
+        var store = new ClipStore(_dir, _vault);
+        store.Upsert(Text(new string('x', 5_000)));
+        store.Upsert(Text("short"));
+        StoredImage(store, "img:usage", 50_000);
+
+        var usage = store.GetStorageUsage();
+        var text = usage.Kinds.Single(k => k.Kind == ClipKind.Text);
+        var images = usage.Kinds.Single(k => k.Kind == ClipKind.Image);
+
+        Assert.Equal(2, text.Count);
+        Assert.InRange(text.Bytes, 5_000, 6_000);  // encrypted, so a little more than the plaintext
+        Assert.Equal(1, images.Count);
+        Assert.InRange(images.Bytes, 50_000, 51_000);
+        Assert.Equal(0, usage.Kinds.Single(k => k.Kind == ClipKind.Link).Count);
+        Assert.True(usage.OtherBytes > 0);
+        Assert.Equal(usage.Kinds.Sum(k => k.Bytes) + usage.OtherBytes, usage.TotalBytes);
+    }
+
     [Fact]
     public void Thumbnails_are_encrypted_and_deleted_with_their_image()
     {

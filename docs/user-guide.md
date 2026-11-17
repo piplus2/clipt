@@ -109,8 +109,13 @@ Pasting a clip moves it back to the top of the history.
 | **Ctrl+O** | Open a link in your browser, show a file in Explorer, or save an image as a PNG |
 | Right-click | All of the above, plus *Never record from this app* |
 
-By default, clips older than **30 days** are removed and the history keeps up to **2,000** clips. Pinned clips
-are exempt from both limits. Change these limits in **Settings → History & privacy**, or use **Clear history…** (it keeps pinned clips).
+By default, clips older than **30 days** are removed, the history keeps up to **2,000** clips, and images use at most
+**1 GB** of disk (the least recently used ones go first, and the latest image is always kept). Pinned clips are exempt
+from all three limits. Change these limits in **Settings → History & privacy** (an image limit of 0 means no limit),
+or use **Clear history…** (it keeps pinned clips).
+
+**Settings → Storage** shows how much disk space your history uses, split by kind of clip (images, text, links, code,
+files, colours) plus the database's own index and free space.
 
 ## Passwords and other secrets
 

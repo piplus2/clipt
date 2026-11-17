@@ -6,6 +6,15 @@ using Microsoft.Data.Sqlite;
 
 namespace Clipt.Services;
 
+/// <summary>Disk space used by one kind of clip (encrypted data, plus thumbnails for images).</summary>
+public sealed record StorageCategory(ClipKind Kind, int Count, long Bytes);
+
+/// <summary>Disk space used by the history. <see cref="OtherBytes"/> is the database's own structure and free pages.</summary>
+public sealed record StorageUsage(IReadOnlyList<StorageCategory> Kinds, long OtherBytes)
+{
+    public long TotalBytes => Kinds.Sum(k => k.Bytes) + OtherBytes;
+}
+
 public sealed class SearchRequest
 {
     public string Query { get; init; } = "";
@@ -366,13 +375,92 @@ public sealed class ClipStore
     public int ExpireSensitive(TimeSpan ttl) =>
         DeleteWhere("sensitive = 1 AND pinned = 0 AND last_used_at < $a", DateTimeOffset.UtcNow.Add(-ttl).ToUnixTimeMilliseconds());
 
-    /// <summary>Applies retention: max age and max item count (pinned items are never pruned).</summary>
-    public void Prune(int maxItems, int retentionDays)
+    /// <summary>
+    /// Applies retention: max age, max item count and image storage budget (pinned items are never pruned).
+    /// </summary>
+    public void Prune(int maxItems, int retentionDays, long maxImageBytes = 0)
     {
         if (retentionDays > 0)
             DeleteWhere("pinned = 0 AND last_used_at < $a", DateTimeOffset.UtcNow.AddDays(-retentionDays).ToUnixTimeMilliseconds());
         if (maxItems > 0)
             DeleteWhere("pinned = 0 AND id IN (SELECT id FROM clips WHERE pinned = 0 ORDER BY last_used_at DESC LIMIT -1 OFFSET $a)", maxItems);
+        PruneImages(maxImageBytes);
+    }
+
+    /// <summary>
+    /// Removes the least recently used image clips until images (with their thumbnails) use at most
+    /// <paramref name="maxBytes"/> on disk. Pinned images count towards the total but are never removed, and the most
+    /// recently used image is always kept, so copying one large image doesn't make it vanish. 0 = no limit.
+    /// </summary>
+    public int PruneImages(long maxBytes)
+    {
+        if (maxBytes <= 0) return 0;
+        lock (_gate)
+        {
+            var images = new List<(long id, bool pinned, long bytes)>();
+            using (var c = Open())
+            using (var cmd = c.CreateCommand())
+            {
+                cmd.CommandText = "SELECT id, pinned, image_path FROM clips WHERE image_path IS NOT NULL ORDER BY last_used_at DESC, id DESC";
+                using var r = cmd.ExecuteReader();
+                while (r.Read()) images.Add((r.GetInt64(0), r.GetInt64(1) != 0, ImageBytesOnDisk(r.GetString(2))));
+            }
+
+            long total = images.Sum(i => i.bytes);
+            var victims = new List<long>();
+            for (int i = images.Count - 1; i >= 1 && total > maxBytes; i--)
+            {
+                if (images[i].pinned) continue;
+                victims.Add(images[i].id);
+                total -= images[i].bytes;
+            }
+            if (victims.Count == 0) return 0;
+            return DeleteWhere($"id IN ({string.Join(',', victims.Select(v => v.ToString(CultureInfo.InvariantCulture)))})");
+        }
+    }
+
+    private static long FileSize(string path)
+    {
+        try { return new FileInfo(path).Length; }
+        catch { return 0; } // missing or unreadable
+    }
+
+    private static long ImageBytesOnDisk(string imagePath) => FileSize(imagePath) + FileSize(ThumbnailPath(imagePath));
+
+    /// <summary>How much disk space the history uses, by kind of clip.</summary>
+    public StorageUsage GetStorageUsage()
+    {
+        lock (_gate)
+        {
+            var kinds = Enum.GetValues<ClipKind>().ToDictionary(k => k, _ => (count: 0, bytes: 0L));
+            long rowBytes = 0;
+            using (var c = Open())
+            using (var cmd = c.CreateCommand())
+            {
+                cmd.CommandText = """
+                    SELECT kind, image_path,
+                           IFNULL(length(text), 0) + IFNULL(length(html), 0) + IFNULL(length(rtf), 0) +
+                           IFNULL(length(ocr_text), 0) + IFNULL(length(source_app), 0) + IFNULL(length(source_path), 0)
+                    FROM clips
+                    """;
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    var kind = Enum.IsDefined(typeof(ClipKind), (int)r.GetInt64(0)) ? (ClipKind)r.GetInt64(0) : ClipKind.Text;
+                    long content = r.GetInt64(2);
+                    rowBytes += content;
+                    if (!r.IsDBNull(1)) content += ImageBytesOnDisk(r.GetString(1));
+                    var (count, bytes) = kinds[kind];
+                    kinds[kind] = (count + 1, bytes + content);
+                }
+            }
+
+            var db = Path.Combine(DataDir, DbFileName);
+            long dbBytes = FileSize(db) + FileSize(db + "-wal") + FileSize(db + "-shm");
+            return new StorageUsage(
+                kinds.Select(k => new StorageCategory(k.Key, k.Value.count, k.Value.bytes)).ToList(),
+                Math.Max(0, dbBytes - rowBytes));
+        }
     }
 
     private int DeleteWhere(string where, object? arg = null)

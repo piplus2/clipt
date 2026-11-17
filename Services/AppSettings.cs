@@ -29,6 +29,8 @@ public sealed class AppSettings
     // History
     public int MaxItems { get; set; } = 2000;
     public int RetentionDays { get; set; } = 30; // 0 = forever
+    /// <summary>Disk space images may use, in MB. Least recently used images are removed first. 0 = no limit.</summary>
+    public int MaxImageStorageMb { get; set; } = 1024;
     public bool CaptureImages { get; set; } = true;
     public bool OcrImages { get; set; } = true;
 

@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
+using Clipt.Models;
 using Clipt.Services;
 
 namespace Clipt.UI;
@@ -46,6 +47,7 @@ public partial class SettingsWindow : Window
 
         RetentionBox.Text = s.RetentionDays.ToString();
         MaxItemsBox.Text = s.MaxItems.ToString();
+        ImageLimitBox.Text = s.MaxImageStorageMb.ToString();
         ImagesSwitch.IsChecked = s.CaptureImages;
         OcrSwitch.IsChecked = s.OcrImages;
         OcrDesc.Text = platform.OcrDescription;
@@ -76,7 +78,8 @@ public partial class SettingsWindow : Window
         {
             if (e.Key == Key.Escape && !HotkeyBox.IsFocused) Close();
         }, RoutingStrategies.Tunnel);
-        Opened += (_, _) => ApplyTheme();
+        Opened += (_, _) => { ApplyTheme(); _ = RefreshStorageAsync(); };
+        ActualThemeVariantChanged += (_, _) => { if (_usage is not null) ShowStorage(_usage); };
         Closed += (_, _) => _testCts?.Cancel();
     }
 
@@ -153,6 +156,7 @@ public partial class SettingsWindow : Window
 
         if (int.TryParse(RetentionBox.Text?.Trim(), out var days) && days >= 0) s.RetentionDays = days;
         if (int.TryParse(MaxItemsBox.Text?.Trim(), out var max) && max >= 10) s.MaxItems = max;
+        if (int.TryParse(ImageLimitBox.Text?.Trim(), out var imageMb) && imageMb >= 0) s.MaxImageStorageMb = imageMb;
         s.CaptureImages = ImagesSwitch.IsChecked == true;
         s.OcrImages = OcrSwitch.IsChecked == true;
 
@@ -207,7 +211,108 @@ public partial class SettingsWindow : Window
 
     private void OpenData_Click(object? sender, RoutedEventArgs e) => _app.Platform.Open(AppSettings.DataDir);
 
-    private async void Clear_Click(object? sender, RoutedEventArgs e) => await _app.ClearHistoryAsync(this);
+    private async void Clear_Click(object? sender, RoutedEventArgs e)
+    {
+        await _app.ClearHistoryAsync(this);
+        await RefreshStorageAsync();
+    }
+
+    // ---------- storage ----------
+
+    private StorageUsage? _usage;
+
+    // Categorical slots 1-7 (fixed order, so a category keeps its colour), stepped separately for light and dark.
+    private static readonly string[] SeriesLight = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6"];
+    private static readonly string[] SeriesDark = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c", "#9085e9"];
+
+    private static readonly (ClipKind kind, string name)[] Categories =
+    [
+        (ClipKind.Image, "Images"), (ClipKind.Text, "Text"), (ClipKind.Link, "Links"), (ClipKind.Code, "Code"),
+        (ClipKind.Files, "Files"), (ClipKind.Color, "Colours"),
+    ];
+
+    private async Task RefreshStorageAsync()
+    {
+        StorageTotal.Text = "…";
+        try
+        {
+            var store = _app.Store;
+            ShowStorage(_usage = await Task.Run(store.GetStorageUsage));
+        }
+        catch
+        {
+            StorageTotal.Text = "Unavailable";
+        }
+    }
+
+    private void ShowStorage(StorageUsage usage)
+    {
+        var palette = ActualThemeVariant == Avalonia.Styling.ThemeVariant.Dark ? SeriesDark : SeriesLight;
+        var rows = Categories
+            .Select((c, i) =>
+            {
+                var cat = usage.Kinds.FirstOrDefault(k => k.Kind == c.kind);
+                return (c.name, count: cat?.Count ?? 0, bytes: cat?.Bytes ?? 0L, color: palette[i]);
+            })
+            .Append((name: "Database index & free space", count: -1, bytes: usage.OtherBytes, color: palette[6]))
+            .ToList();
+
+        StorageTotal.Text = FormatBytes(usage.TotalBytes);
+
+        StorageBar.Children.Clear();
+        StorageBar.ColumnDefinitions.Clear();
+        var shown = rows.Where(r => r.bytes > 0).ToList();
+        for (int i = 0; i < shown.Count; i++)
+        {
+            var r = shown[i];
+            StorageBar.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(r.bytes, GridUnitType.Star)));
+            var segment = new Border
+            {
+                Background = Avalonia.Media.Brush.Parse(r.color),
+                // Rounded outer ends, a 2px gap between segments.
+                CornerRadius = new CornerRadius(i == 0 ? 4 : 0, i == shown.Count - 1 ? 4 : 0, i == shown.Count - 1 ? 4 : 0, i == 0 ? 4 : 0),
+                Margin = new Thickness(0, 0, i == shown.Count - 1 ? 0 : 2, 0),
+                MinWidth = 2,
+            };
+            ToolTip.SetTip(segment, $"{r.name}: {FormatBytes(r.bytes)}");
+            Grid.SetColumn(segment, i);
+            StorageBar.Children.Add(segment);
+        }
+        if (shown.Count == 0)
+            StorageBar.Children.Add(new Border { CornerRadius = new CornerRadius(4), [!Border.BackgroundProperty] = this.GetResourceObservable("Stroke.Divider").ToBinding() });
+
+        StorageList.Children.Clear();
+        foreach (var r in rows)
+        {
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto") };
+            var dot = new Border
+            {
+                Width = 10, Height = 10, CornerRadius = new CornerRadius(5), Margin = new Thickness(0, 0, 10, 0),
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Background = Avalonia.Media.Brush.Parse(r.color),
+            };
+            var name = new TextBlock { Text = r.name, FontSize = 13 };
+            name.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("Fg.Primary"));
+            var count = new TextBlock
+            {
+                Text = r.count < 0 ? "" : r.count == 1 ? "1 clip" : $"{r.count:N0} clips", FontSize = 12,
+                Margin = new Thickness(0, 0, 16, 0), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            };
+            count.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("Fg.Tertiary"));
+            var size = new TextBlock { Text = FormatBytes(r.bytes), FontSize = 13, MinWidth = 70, TextAlignment = Avalonia.Media.TextAlignment.Right };
+            size.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("Fg.Secondary"));
+            Grid.SetColumn(name, 1); Grid.SetColumn(count, 2); Grid.SetColumn(size, 3);
+            row.Children.AddRange([dot, name, count, size]);
+            StorageList.Children.Add(row);
+        }
+    }
+
+    internal static string FormatBytes(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024.0:0.#} KB",
+        < 1024L * 1024 * 1024 => $"{bytes / (1024.0 * 1024):0.#} MB",
+        _ => $"{bytes / (1024.0 * 1024 * 1024):0.##} GB",
+    };
 
     private void ApiKeyLink_Click(object? sender, RoutedEventArgs e) =>
         _app.Platform.Open("https://console.anthropic.com/settings/keys");

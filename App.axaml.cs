@@ -92,7 +92,7 @@ public partial class App : Application
 
         ApplySettings();
 
-        Store.Prune(Settings.MaxItems, Settings.RetentionDays);
+        PruneHistory();
         ExpireSensitive();
         _expiryTimer = new DispatcherTimer(TimeSpan.FromSeconds(30), DispatcherPriority.Background, (_, _) => ExpireSensitive());
         _expiryTimer.Start();
@@ -126,10 +126,14 @@ public partial class App : Application
         if (item.Kind == ClipKind.Image && item.OcrText is null && Settings.OcrImages && Ocr is not null && item.ImagePath is not null)
             _ = OcrAsync(item.Id, item.ImagePath);
 
+        // Images are checked right away: a few large screenshots can blow the budget long before the next full prune.
+        if (item.Kind == ClipKind.Image && Settings.MaxImageStorageMb > 0)
+            Store.PruneImages(Settings.MaxImageStorageMb * 1024L * 1024L);
+
         if (++_capturesSincePrune >= 50)
         {
             _capturesSincePrune = 0;
-            Store.Prune(Settings.MaxItems, Settings.RetentionDays);
+            PruneHistory();
         }
 
         if (_launcher is { IsVisible: true } && _vm is { IsBrowse: true })
@@ -246,12 +250,15 @@ public partial class App : Application
         _tray?.Update(Settings.Hotkey, Monitor.Paused);
     }
 
+    private void PruneHistory() =>
+        Store.Prune(Settings.MaxItems, Settings.RetentionDays, Settings.MaxImageStorageMb * 1024L * 1024L);
+
     public void UpdateSettings(AppSettings updated)
     {
         Settings = updated;
         Settings.Save();
         ApplySettings();
-        Store.Prune(Settings.MaxItems, Settings.RetentionDays);
+        PruneHistory();
     }
 
     private void ApplySettings()

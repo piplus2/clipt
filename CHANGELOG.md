@@ -12,6 +12,9 @@
   - Tray icon via StatusNotifierItem, autostart via an XDG autostart entry.
   - App names and icons from .desktop files.
   - Honors KDE's `x-kde-passwordManagerHint` (set by KeePassXC and others) and sets it on secrets Clipt pastes.
+- **Image storage limit** (default 1 GB, set in Settings → History & privacy). The least recently used images are removed
+  first; pinned images and the latest image are kept.
+- **Storage in Settings:** disk space used by the history, split by kind of clip.
 
 ### Changed
 
