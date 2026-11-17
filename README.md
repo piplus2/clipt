@@ -1,5 +1,11 @@
 # Clipt
 
+[![Latest release](https://img.shields.io/github/v/release/piplus2/clipt)](https://github.com/piplus2/clipt/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/piplus2/clipt/total)](https://github.com/piplus2/clipt/releases)
+[![License: MIT](https://img.shields.io/github/license/piplus2/clipt)](LICENSE)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?logo=windows)](#install)
+[![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)](https://dotnet.microsoft.com/download/dotnet/10.0)
+
 **A Spotlight-style clipboard history for Windows.** Press a shortcut, type a few letters, hit Enter, and it's pasted.
 
 ![Clipt: search your clipboard history and preview each clip](docs/images/launcher.png)
