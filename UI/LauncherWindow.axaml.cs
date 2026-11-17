@@ -48,8 +48,6 @@ public partial class LauncherWindow : Window
             list.AddHandler(PointerPressedEvent, SelectRowUnderPointer, RoutingStrategies.Tunnel);
             list.SelectionChanged += (_, _) => { if (list.SelectedItem is { } item) list.ScrollIntoView(item); };
         }
-        ClipList.DoubleTapped += (_, _) => { if (_vm.Selected is not null) _ = PasteAsync(_vm.Selected, PasteMode.Rich, copyOnly: false); };
-        ActionList.DoubleTapped += (_, _) => { if (_vm.SelectedAction is not null) _ = _vm.RunAiAsync(_vm.SelectedAction); };
         ClipMenu.Opening += (_, _) => UpdateClipMenu();
     }
 
@@ -334,15 +332,23 @@ public partial class LauncherWindow : Window
 
     /// <summary>
     /// Rows are deliberately not focusable (typing must always reach the search box), so mouse selection is done
-    /// here, for both buttons. Not marked handled, so double-click and the context menu still work, now on the row
-    /// that was actually clicked.
+    /// here, for both buttons; a right-click then opens the context menu on the row that was actually clicked.
+    /// A double-click with the left button pastes the clip (or runs the AI action) under the pointer.
     /// </summary>
     private void SelectRowUnderPointer(object? sender, PointerPressedEventArgs e)
     {
         if (sender is not ListBox list || e.Source is not Visual v) return;
         var row = v as ListBoxItem ?? v.FindAncestorOfType<ListBoxItem>();
-        if (row?.DataContext is { } item && list.ItemsSource is System.Collections.IList items && items.Contains(item))
-            list.SelectedItem = item;
+        if (row?.DataContext is not { } item || list.ItemsSource is not System.Collections.IList items || !items.Contains(item))
+            return;
+        list.SelectedItem = item;
+
+        if (e.ClickCount == 2 && e.GetCurrentPoint(list).Properties.IsLeftButtonPressed)
+        {
+            e.Handled = true;
+            if (item is ClipItem clip) _ = PasteAsync(clip, PasteMode.Rich, copyOnly: false);
+            else if (item is AiAction action) _ = _vm.RunAiAsync(action);
+        }
     }
 
     private void Settings_Click(object? sender, RoutedEventArgs e) => OpenSettings();
